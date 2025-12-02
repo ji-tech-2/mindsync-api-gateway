@@ -30,3 +30,7 @@ services:
             - X-Auth-Token
           credentials: true
           max_age: 3600
+      - name: file-log
+        config:
+          path: /dev/stdout
+          reopen: false
