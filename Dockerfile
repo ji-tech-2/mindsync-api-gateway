@@ -8,4 +8,4 @@ HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
   CMD curl -fs http://localhost:8001/status || exit 1
 
 ENTRYPOINT ["kong", "start", "-v", "--conf", "/etc/kong/kong.conf.default", \
-           "--declare", "/usr/local/kong/declarative/kong.yml"]
+            "--declarative", "/usr/local/kong/declarative/kong.yml"]
