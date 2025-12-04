@@ -1,42 +1,59 @@
-name: Deploy Kong Gateway
+name: Build & Deploy Kong Gateway
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
 
 jobs:
-  deploy:
+  build_and_push:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Copy config to server and restart Kong
-        uses: appleboy/scp-action@v0.1.7
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          host: ${{ secrets.DO_HOST }}
-          username: ${{ secrets.DO_USER }}
-          key: ${{ secrets.DO_SSH_KEY }}
-          source: "kong.yml"
-          target: "/etc/kong/"
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: SSH Deploy Kong on DigitalOcean
+      - name: Build Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:latest .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:latest
+
+  deploy_to_droplet:
+    needs: build_and_push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to DigitalOcean via SSH (Password)
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
-          key: ${{ secrets.DO_SSH_KEY }}
+          password: ${{ secrets.DO_PASS }}
           script: |
-            docker pull kong/kong-gateway:3.7.0
+            echo "[INFO] Pulling latest Kong image..."
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:latest
+
+            echo "[INFO] Stopping existing Kong container..."
             docker stop kong || true
             docker rm kong || true
 
+            echo "[INFO] Starting updated Kong container..."
+
             docker run -d --name kong \
-              -p 8000:8000 -p 8443:8443 -p 8001:8001 -p 8444:8444 \
-              -v /etc/kong/kong.yml:/usr/local/kong/declarative/kong.yml \
+              -p 8000:8000 -p 8443:8443 \
+              -p 8001:8001 -p 8444:8444 \
               -e KONG_DATABASE=off \
-              -e KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml \
+              -e KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yaml \
+              -v /etc/kong/kong.yaml:/usr/local/kong/declarative/kong.yaml \
               --restart always \
-              kong/kong-gateway:3.7.0
+              ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:latest
+
+            echo "[DEPLOY SUCCESS]"
