@@ -1,0 +1,42 @@
+name: Deploy Kong Gateway
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy config to server and restart Kong
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          source: "kong.yml"
+          target: "/etc/kong/"
+
+      - name: SSH Deploy Kong on DigitalOcean
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          script: |
+            docker pull kong/kong-gateway:3.7.0
+            docker stop kong || true
+            docker rm kong || true
+
+            docker run -d --name kong \
+              -p 8000:8000 -p 8443:8443 -p 8001:8001 -p 8444:8444 \
+              -v /etc/kong/kong.yml:/usr/local/kong/declarative/kong.yml \
+              -e KONG_DATABASE=off \
+              -e KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml \
+              --restart always \
+              kong/kong-gateway:3.7.0
