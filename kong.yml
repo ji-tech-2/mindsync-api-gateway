@@ -1,11 +1,11 @@
 _format_version: "3.0"
 services:
-  - name: mindsync-backend
-    url: http://10.104.0.2:80/hello
+  - name: mindsync-model-flask
+    url: http://165.22.246.95:80/predict
     routes:
-      - name: test-route
+      - name: predict-route
         paths:
-          - /test
+          - /v0-1/model-predict
     plugins:
       - name: cors
         config:
