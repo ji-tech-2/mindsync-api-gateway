@@ -15,7 +15,7 @@ services:
   - name: mindsync-model-result
     url: http://165.22.246.95:80/result
     routes:
-      - name: advice-route
+      - name: result-route
         paths:
           - /v0-1/model-result
 plugins:
