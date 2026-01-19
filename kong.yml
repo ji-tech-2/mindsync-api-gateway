@@ -22,7 +22,7 @@ plugins:
   - name: cors
     config:
       origins:
-        - "http://165.22.63.100:80"
+        - "*"
       methods:
         - GET
         - POST
