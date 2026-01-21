@@ -18,6 +18,18 @@ services:
       - name: result-route
         paths:
           - /v0-1/model-result
+  - name: mindsync-auth-login
+    url: http://188.166.233.241:80/login
+    routes:
+      - name: login-route
+        paths:
+          - /v0-1/auth-login
+  - name: mindsync-auth-register
+    url: http://188.166.233.241:80/register
+    routes:
+      - name: register-route
+        paths:
+          - /v0-1/auth-register
 plugins:
   - name: cors
     config:
