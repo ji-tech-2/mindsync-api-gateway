@@ -30,6 +30,12 @@ services:
       - name: register-route
         paths:
           - /v0-1/auth-register
+  - name: mindsync-auth-profile
+    url: http://188.166.233.241:80/profile
+    routes:
+      - name: profile-route
+        paths:
+          - /v0-1/auth-profile
 plugins:
   - name: cors
     config:
