@@ -18,6 +18,18 @@ services:
       - name: result-route
         paths:
           - /v0-1/model-result
+  - name: mindsync-model-history
+    url: http://165.22.246.95:80/history
+    routes:
+      - name: history-route
+        paths:
+          - /v0-1/model-history
+  - name: mindsync-model-streak
+    url: http://165.22.246.95:80/streak
+    routes:
+      - name: streak-route
+        paths:
+          - /v0-1/model-streak
   - name: mindsync-auth-login
     url: http://188.166.233.241:80/login
     routes:
