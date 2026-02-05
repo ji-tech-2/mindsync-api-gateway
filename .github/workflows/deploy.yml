@@ -2,11 +2,23 @@ name: Build & Deploy Kong Gateway
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tests with Docker
+        run: |
+          docker build --target test -t kong-gateway-test .
+
   build_and_push:
     runs-on: ubuntu-latest
+    needs: test
 
     steps:
       - name: Checkout code
@@ -46,7 +58,7 @@ jobs:
             docker rm kong || true
 
             echo "[INFO] Starting updated Kong container..."
-            
+
             # Revisi: Menghapus mounting (-v) dan ENV config path
             # karena path sudah didefinisikan di ENTRYPOINT Dockerfile
             docker run -d --name kong \
