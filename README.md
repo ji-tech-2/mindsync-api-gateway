@@ -56,6 +56,7 @@ Auth API   ML Model API
 | mindsync-model-result           | http://165.22.246.95:80/result                  | `/v0-1/model-result`           | Get prediction results   |
 | mindsync-model-history          | http://165.22.246.95:80/history                 | `/v0-1/model-history`          | User prediction history  |
 | mindsync-model-streak           | http://165.22.246.95:80/streak                  | `/v0-1/model-streak`           | User activity streaks    |
+| mindsync-model-weekly-chart     | http://165.22.246.95:80/chart/weekly            | `/v0-1/model-weekly-chart`     | Weekly chart data        |
 | mindsync-model-critical-factors | http://165.22.246.95:80/weekly-critical-factors | `/v0-1/model-critical-factors` | Weekly critical factors  |
 | mindsync-model-daily-suggestion | http://165.22.246.95:80/daily-suggestion        | `/v0-1/model-daily-suggestion` | Daily suggestions        |
 
@@ -259,6 +260,45 @@ Response: 200 OK
 }
 ```
 
+#### Get Weekly Chart
+
+```
+GET /v0-1/model-weekly-chart/<user_id>
+
+Response: 200 OK
+{
+  "status": "success",
+  "data": [
+    {
+      "date": "2026-02-04",
+      "label": "Wed",
+      "has_data": true,
+      "mental_health_index": 45.0,
+      "screen_time": 12.0,
+      "sleep_duration": 4.5,
+      "sleep_quality": 2.0,
+      "stress_level": 8.0,
+      "productivity": 40.0,
+      "exercise_duration": 0.0,
+      "social_activity": 1.0
+    },
+    {
+      "date": "2026-02-05",
+      "label": "Thu",
+      "has_data": true,
+      "mental_health_index": 92.5,
+      "screen_time": 4.0,
+      "sleep_duration": 8.0,
+      "sleep_quality": 5.0,
+      "stress_level": 1.5,
+      "productivity": 95.0,
+      "exercise_duration": 60.0,
+      "social_activity": 5.0
+    }
+  ]
+}
+```
+
 #### Get Weekly Critical Factors
 
 ```
@@ -297,7 +337,7 @@ The gateway is configured using [kong.yml](kong.yml) in declarative format (vers
 **Key Configuration Elements:**
 
 - **Format Version**: 3.0
-- **Services**: 10 microservice endpoints
+- **Services**: 11 microservice endpoints
 - **Routes**: Path-based routing with `/v0-1/` prefix
 - **Plugins**: CORS and file-log enabled globally
 

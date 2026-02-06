@@ -30,6 +30,17 @@ services:
       - name: streak-route
         paths:
           - /v0-1/model-streak
+  - name: mindsync-model-weekly-chart
+    url: http://165.22.246.95:80/chart/weekly
+    routes:
+      - name: weekly-chart-route
+        paths:
+          - /v0-1/model-weekly-chart/(?<user_id>[^/]+)
+        plugins:
+          - name: request-transformer
+            config:
+              add:
+                querystring: ["user_id:$(uri_captures['user_id'])"]
   - name: mindsync-model-critical-factors
     url: http://165.22.246.95:80/weekly-critical-factors
     routes:
