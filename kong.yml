@@ -41,6 +41,18 @@ services:
             config:
               add:
                 querystring: ["user_id:$(uri_captures['user_id'])"]
+  - name: mindsync-model-critical-factors
+    url: http://165.22.246.95:80/weekly-critical-factors
+    routes:
+      - name: critical-factors-route
+        paths:
+          - /v0-1/model-critical-factors
+  - name: mindsync-model-daily-suggestion
+    url: http://165.22.246.95:80/daily-suggestion
+    routes:
+      - name: daily-suggestion-route
+        paths:
+          - /v0-1/model-daily-suggestion
   - name: mindsync-auth-login
     url: http://188.166.233.241:80/login
     routes:
