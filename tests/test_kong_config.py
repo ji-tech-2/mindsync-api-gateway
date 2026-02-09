@@ -86,13 +86,13 @@ class TestKongConfig(unittest.TestCase):
             )
 
     def test_route_paths_start_with_slash(self):
-        """Test that all route paths start with a forward slash."""
+        """Test that all route paths start with a forward slash or tilde (for regex)."""
         for service in self.config['services']:
             for route in service['routes']:
                 for path in route['paths']:
                     self.assertTrue(
-                        path.startswith('/'),
-                        f"Route path '{path}' in service '{service['name']}' does not start with '/'"
+                        path.startswith('/') or path.startswith('~'),
+                        f"Route path '{path}' in service '{service['name']}' does not start with '/' or '~'"
                     )
 
 
