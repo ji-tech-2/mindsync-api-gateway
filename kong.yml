@@ -35,12 +35,14 @@ services:
     routes:
       - name: weekly-chart-route
         paths:
-          - /v0-1/model-weekly-chart/(?<user_id>[^/]+)
+          - ~/v0-1/model-weekly-chart/(?<user_id>[^/]+)$
+        strip_path: false
         plugins:
           - name: request-transformer
             config:
               add:
-                querystring: ["user_id:$(uri_captures['user_id'])"]
+                querystring:
+                  - "user_id:$(uri_captures.user_id)"
   - name: mindsync-model-critical-factors
     url: http://165.22.246.95:80/weekly-critical-factors
     routes:
