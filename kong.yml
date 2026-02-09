@@ -36,7 +36,7 @@ services:
       - name: weekly-chart-route
         paths:
           - ~/v0-1/model-weekly-chart/(?<user_id>[^/]+)$
-        strip_path: false
+        strip_path: true
         plugins:
           - name: request-transformer
             config:
