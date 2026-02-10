@@ -37,8 +37,8 @@ jobs:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           password: ${{ secrets.DO_PASS }}
-          script_stop: true
           script: |
+            set -e
             echo "[INFO] Pulling Kong image with tag: ${{ steps.image.outputs.tag }}"
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:${{ steps.image.outputs.tag }}
 
