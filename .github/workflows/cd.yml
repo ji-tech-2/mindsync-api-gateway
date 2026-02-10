@@ -1,0 +1,85 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["Artifact - Build & Push"]
+    types:
+      - completed
+    branches: ["main"]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Docker image tag to deploy (default: latest)'
+        required: false
+        default: 'latest'
+        type: string
+
+jobs:
+  deploy_to_droplet:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    steps:
+      - name: Determine image tag
+        id: image
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            IMAGE_TAG="${{ inputs.image_tag }}"
+          else
+            IMAGE_TAG="latest"
+          fi
+          echo "tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "Deploying image tag: ${IMAGE_TAG}"
+
+      - name: Deploy to DigitalOcean via SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          password: ${{ secrets.DO_PASS }}
+          script_stop: true
+          script: |
+            echo "[INFO] Pulling Kong image with tag: ${{ steps.image.outputs.tag }}"
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:${{ steps.image.outputs.tag }}
+
+            echo "[INFO] Stopping existing Kong container..."
+            docker stop kong || true
+            docker rm kong || true
+
+            echo "[INFO] Starting updated Kong container..."
+            docker run -d --name kong \
+              -p 8000:8000 -p 8443:8443 \
+              -p 8001:8001 -p 8444:8444 \
+              -e KONG_DATABASE=off \
+              --restart always \
+              ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:${{ steps.image.outputs.tag }}
+
+            echo "[INFO] Verifying deployment..."
+            sleep 5
+            if docker ps | grep -q kong; then
+              echo "[DEPLOY SUCCESS] Kong is running"
+              docker ps | grep kong
+            else
+              echo "[DEPLOY FAILED] Kong container is not running"
+              exit 1
+            fi
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "## 🚀 Deployment Successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** DigitalOcean Droplet" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:${{ steps.image.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Exposed Ports:" >> $GITHUB_STEP_SUMMARY
+          echo "- Proxy: 8000 (HTTP), 8443 (HTTPS)" >> $GITHUB_STEP_SUMMARY
+          echo "- Admin API: 8001 (HTTP), 8444 (HTTPS)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Deployment failure notification
+        if: failure()
+        run: |
+          echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Check the logs above for details." >> $GITHUB_STEP_SUMMARY
