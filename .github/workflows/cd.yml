@@ -2,7 +2,7 @@ name: CD
 
 on:
   workflow_run:
-    workflows: ["Artifact - Build & Push"]
+    workflows: ["Artifact"]
     types:
       - completed
     branches: ["main"]
@@ -69,9 +69,9 @@ jobs:
         run: |
           echo "## 🚀 Deployment Successful" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Environment:** DigitalOcean Droplet" >> $GITHUB_STEP_SUMMARY
-          echo "**Image:** ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:${{ steps.image.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployed at:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "Environment: DigitalOcean Droplet" >> $GITHUB_STEP_SUMMARY
+          echo "Image: ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:${{ steps.image.outputs.tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "Deployed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Exposed Ports:" >> $GITHUB_STEP_SUMMARY
           echo "- Proxy: 8000 (HTTP), 8443 (HTTPS)" >> $GITHUB_STEP_SUMMARY
