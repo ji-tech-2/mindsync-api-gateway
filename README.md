@@ -2,6 +2,8 @@
 
 Kong API Gateway configuration for routing requests to MindSync microservices (authentication and ML model services).
 
+**🔒 HTTPS-enabled API Gateway running on ports 80/443 with domain `api.mindsync.my`**
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -10,7 +12,10 @@ Kong API Gateway configuration for routing requests to MindSync microservices (a
 - [API Endpoints](#api-endpoints)
 - [Configuration](#configuration)
 - [Getting Started](#getting-started)
+  - [SSL/HTTPS Configuration](#sslhttps-configuration)
+  - [Installation Options](#installation-options)
 - [Plugins](#plugins)
+- [SSL Certificate Setup](SSL_SETUP.md) 📘
 
 ## Overview
 
@@ -18,6 +23,9 @@ This API Gateway serves as the single entry point for all MindSync client applic
 
 - **Authentication Service** (mindsync-backend) - User authentication and profile management
 - **ML Model Service** (mindsync-model-flask) - Mental health predictions and analytics
+
+**Domain**: `api.mindsync.my`  
+**Protocols**: HTTP (port 80) and HTTPS (port 443)
 
 ## Architecture
 
@@ -358,55 +366,122 @@ KONG_ADMIN_ERROR_LOG=/dev/stderr
 
 ### Prerequisites
 
-- Kong Gateway 3.0+
+- Kong Gateway 3.6+
 - Access to backend services:
   - Authentication service at `http://188.166.233.241:80`
   - ML Model service at `http://165.22.246.95:80`
+- SSL/TLS certificate for `api.mindsync.my` (for HTTPS support)
+- Domain DNS configured to point to your server
+
+### SSL/HTTPS Configuration
+
+The API Gateway is configured to run on standard HTTP/HTTPS ports (80/443) with the domain `api.mindsync.my`.
+
+#### Generating SSL Certificates
+
+**Option 1: Using Let's Encrypt (Recommended for Production)**
+
+```bash
+# Install certbot
+sudo apt-get update
+sudo apt-get install certbot
+
+# Generate certificate for api.mindsync.my
+sudo certbot certonly --standalone -d api.mindsync.my
+
+# Certificates will be created at:
+# /etc/letsencrypt/live/api.mindsync.my/fullchain.pem
+# /etc/letsencrypt/live/api.mindsync.my/privkey.pem
+```
+
+**Option 2: Self-Signed Certificate (Development Only)**
+
+```bash
+# Quick method - use the provided script:
+chmod +x generate-ssl.sh
+./generate-ssl.sh
+
+# Or manual method:
+# Create SSL directory
+mkdir -p ssl
+
+# Generate self-signed certificate
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout ssl/key.pem \
+  -out ssl/cert.pem \
+  -subj "/CN=api.mindsync.my"
+```
+
+#### Updating kong.yml with Your SSL Certificate
+
+1. Open kong.yml and locate the certificates section
+2. Replace the placeholder certificate and key with your actual SSL certificate:
+
+```yaml
+certificates:
+  - cert: |
+      -----BEGIN CERTIFICATE-----
+      [Your certificate content here]
+      -----END CERTIFICATE-----
+    key: |
+      -----BEGIN PRIVATE KEY-----
+      [Your private key content here]
+      -----END PRIVATE KEY-----
+    id: mindsync-cert
+```
 
 ### Installation Options
 
 #### Option 1: Docker (Recommended)
 
 ```bash
-# Pull Kong image
-docker pull kong:3.0
-
-# Run Kong with declarative config
-docker run -d --name kong-gateway \
-  -e "KONG_DATABASE=off" \
-  -e "KONG_DECLARATIVE_CONFIG=/kong/kong.yml" \
-  -e "KONG_PROXY_ACCESS_LOG=/dev/stdout" \
-  -e "KONG_ADMIN_ACCESS_LOG=/dev/stdout" \
-  -e "KONG_PROXY_ERROR_LOG=/dev/stderr" \
-  -e "KONG_ADMIN_ERROR_LOG=/dev/stderr" \
-  -v $(pwd)/kong.yml:/kong/kong.yml:ro \
-  -p 8000:8000 \
-  -p 8443:8443 \
-  -p 8001:8001 \
-  -p 8444:8444 \
-  kong:3.0
-```
-
-#### Option 2: Using Dockerfile
-
-```bash
-# Build image
+# Build the image
 docker build -t mindsync-gateway .
 
-# Run container
-docker run -d -p 8000:8000 -p 8443:8443 mindsync-gateway
+# Run with SSL certificates
+docker run -d --name kong-gateway \
+  -v $(pwd)/ssl/cert.pem:/usr/local/kong/ssl/cert.pem:ro \
+  -v $(pwd)/ssl/key.pem:/usr/local/kong/ssl/key.pem:ro \
+  -p 80:80 \
+  -p 443:443 \
+  -p 8001:8001 \
+  mindsync-gateway
+
+# For Let's Encrypt certificates:
+docker run -d --name kong-gateway \
+  -v /etc/letsencrypt/live/api.mindsync.my/fullchain.pem:/usr/local/kong/ssl/cert.pem:ro \
+  -v /etc/letsencrypt/live/api.mindsync.my/privkey.pem:/usr/local/kong/ssl/key.pem:ro \
+  -p 80:80 \
+  -p 443:443 \
+  -p 8001:8001 \
+  mindsync-gateway
 ```
 
-#### Option 3: Local Kong Installation
+#### Option 2: Docker Compose
 
-Install Kong locally and point to configuration:
+Create a `docker-compose.yml` file:
+
+```yaml
+version: "3.8"
+
+services:
+  kong-gateway:
+    build: .
+    container_name: mindsync-api-gateway
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8001:8001"
+    volumes:
+      - ./ssl/cert.pem:/usr/local/kong/ssl/cert.pem:ro
+      - ./ssl/key.pem:/usr/local/kong/ssl/key.pem:ro
+    restart: unless-stopped
+```
+
+Then run:
 
 ```bash
-# Set environment variable
-export KONG_DECLARATIVE_CONFIG=./kong.yml
-
-# Start Kong
-kong start -c kong.conf
+docker-compose up -d
 ```
 
 ### Verify Installation
@@ -414,32 +489,42 @@ kong start -c kong.conf
 Test the gateway is running:
 
 ```bash
-# Health check (assuming Kong admin API is accessible)
+# Health check (admin API)
 curl http://localhost:8001/status
 
-# Test authentication endpoint
-curl -X POST http://localhost:8000/v0-1/auth-login \
+# Test HTTPS endpoint
+curl https://api.mindsync.my/v0-1/auth-login \
+  -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"test123"}'
+
+# Test HTTP endpoint (will redirect to HTTPS in production)
+curl http://api.mindsync.my/v0-1/auth-login \
+  -X POST \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"test123"}'
 ```
 
 ### Default Ports
 
-- **Proxy Port (HTTP)**: 8000
-- **Proxy Port (HTTPS)**: 8443
+- **Proxy Port (HTTP)**: 80
+- **Proxy Port (HTTPS)**: 443
 - **Admin API (HTTP)**: 8001
-- **Admin API (HTTPS)**: 8444
 
 ### Access Through Gateway
 
-All requests should be made to Kong's proxy port:
+All requests should be made to the domain `api.mindsync.my`:
 
 ```bash
-# Instead of: http://188.166.233.241:80/login
-# Use: http://localhost:8000/v0-1/auth-login
+# Authentication endpoints
+https://api.mindsync.my/v0-1/auth-login
+https://api.mindsync.my/v0-1/auth-register
+https://api.mindsync.my/v0-1/auth-profile
 
-# Instead of: http://165.22.246.95:80/predict
-# Use: http://localhost:8000/v0-1/model-predict
+# ML Model endpoints
+https://api.mindsync.my/v0-1/model-predict
+https://api.mindsync.my/v0-1/model-advice
+https://api.mindsync.my/v0-1/model-result
 ```
 
 ## Plugins

@@ -24,7 +24,7 @@ ENV KONG_ADMIN_ACCESS_LOG=/dev/stdout
 ENV KONG_PROXY_ERROR_LOG=/dev/stderr
 ENV KONG_ADMIN_ERROR_LOG=/dev/stderr
 
-EXPOSE 8000 8443 8001 8444
+EXPOSE 80 443 8001
 
 HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
   CMD curl -fs http://localhost:8001/status || exit 1
