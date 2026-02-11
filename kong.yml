@@ -1,5 +1,176 @@
 _format_version: "3.0"
+
+# ============================================================================
+# v1 API - Domain-Oriented Routes (Semantic Clarity for Users)
+# ============================================================================
+# This section defines the new v1 API with routes modeled by semantic domains:
+# - Auth: Authentication and registration
+# - Users: User profile and account management
+# - Predictions: Mental health prediction requests and results
+# - Analytics: User analytics, history, trends and insights
+#
+# Route Format: /v1/{domain}/{resource_id}/{operation}
+# ============================================================================
+
 services:
+  # ========== AUTH DOMAIN ==========
+  - name: auth-register-v1
+    url: http://188.166.233.241:80/register
+    routes:
+      - name: auth-register-route-v1
+        paths:
+          - /v1/auth/register
+        strip_path: true
+
+  - name: auth-login-v1
+    url: http://188.166.233.241:80/login
+    routes:
+      - name: auth-login-route-v1
+        paths:
+          - /v1/auth/login
+        strip_path: true
+
+  # ========== USERS DOMAIN ==========
+  - name: user-profile-v1
+    url: http://188.166.233.241:80/profile
+    routes:
+      - name: user-profile-route-v1
+        paths:
+          - /v1/users/(?<user_id>[^/]+)/profile
+        strip_path: true
+        plugins:
+          - name: request-transformer
+            config:
+              add:
+                querystring:
+                  - "user_id:$(uri_captures.user_id)"
+
+  - name: user-profile-request-otp-v1
+    url: http://188.166.233.241:80/profile/request-otp
+    routes:
+      - name: user-profile-request-otp-route-v1
+        paths:
+          - /v1/users/(?<user_id>[^/]+)/request-otp
+        strip_path: true
+        plugins:
+          - name: request-transformer
+            config:
+              add:
+                querystring:
+                  - "user_id:$(uri_captures.user_id)"
+
+  - name: user-profile-change-password-v1
+    url: http://188.166.233.241:80/profile/change-password
+    routes:
+      - name: user-profile-change-password-route-v1
+        paths:
+          - /v1/users/(?<user_id>[^/]+)/change-password
+        strip_path: true
+        plugins:
+          - name: request-transformer
+            config:
+              add:
+                querystring:
+                  - "user_id:$(uri_captures.user_id)"
+
+  # ========== PREDICTIONS DOMAIN ==========
+  - name: prediction-create-v1
+    url: http://165.22.246.95:80/predict
+    routes:
+      - name: prediction-create-route-v1
+        paths:
+          - /v1/predictions/create
+        strip_path: true
+
+  - name: prediction-result-v1
+    url: http://165.22.246.95:80/result
+    routes:
+      - name: prediction-result-route-v1
+        paths:
+          - /v1/predictions/(?<prediction_id>[^/]+)/result
+        strip_path: true
+        plugins:
+          - name: request-transformer
+            config:
+              add:
+                querystring:
+                  - "prediction_id:$(uri_captures.prediction_id)"
+
+  # ========== ANALYTICS DOMAIN ==========
+  - name: analytics-history-v1
+    url: http://165.22.246.95:80/history
+    routes:
+      - name: analytics-history-route-v1
+        paths:
+          - /v1/users/(?<user_id>[^/]+)/history
+        strip_path: true
+        plugins:
+          - name: request-transformer
+            config:
+              add:
+                querystring:
+                  - "user_id:$(uri_captures.user_id)"
+
+  - name: analytics-streaks-v1
+    url: http://165.22.246.95:80/streak
+    routes:
+      - name: analytics-streaks-route-v1
+        paths:
+          - /v1/users/(?<user_id>[^/]+)/streaks
+        strip_path: true
+        plugins:
+          - name: request-transformer
+            config:
+              add:
+                querystring:
+                  - "user_id:$(uri_captures.user_id)"
+
+  - name: analytics-chart-weekly-v1
+    url: http://165.22.246.95:80/chart/weekly
+    routes:
+      - name: analytics-chart-weekly-route-v1
+        paths:
+          - /v1/users/(?<user_id>[^/]+)/weekly-chart
+        strip_path: true
+        plugins:
+          - name: request-transformer
+            config:
+              add:
+                querystring:
+                  - "user_id:$(uri_captures.user_id)"
+
+  - name: analytics-factors-weekly-v1
+    url: http://165.22.246.95:80/weekly-critical-factors
+    routes:
+      - name: analytics-factors-weekly-route-v1
+        paths:
+          - /v1/users/(?<user_id>[^/]+)/weekly-factors
+        strip_path: true
+        plugins:
+          - name: request-transformer
+            config:
+              add:
+                querystring:
+                  - "user_id:$(uri_captures.user_id)"
+
+  - name: analytics-suggestions-daily-v1
+    url: http://165.22.246.95:80/daily-suggestion
+    routes:
+      - name: analytics-suggestions-daily-route-v1
+        paths:
+          - /v1/users/(?<user_id>[^/]+)/daily-suggestions
+        strip_path: true
+        plugins:
+          - name: request-transformer
+            config:
+              add:
+                querystring:
+                  - "user_id:$(uri_captures.user_id)"
+
+  # ============================================================================
+  # V0-1 API - Legacy Routes (Maintained for backward compatibility)
+  # ============================================================================
+
   - name: mindsync-model-flask
     url: http://165.22.246.95:80/predict
     routes:
