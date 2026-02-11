@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run tests with Docker
+        run: |
+          docker build --target test -t kong-gateway-test .
+
+      - name: Test completed
+        run: echo "✅ All tests passed successfully"
