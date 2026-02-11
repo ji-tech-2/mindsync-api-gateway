@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: 'Docker image tag to deploy (default: latest)'
+        description: "Docker image tag to deploy (default: latest)"
         required: false
-        default: 'latest'
+        default: "latest"
         type: string
 
 jobs:
@@ -36,7 +36,7 @@ jobs:
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
-          password: ${{ secrets.DO_PASS }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             set -e
             echo "[INFO] Pulling Kong image with tag: ${{ steps.image.outputs.tag }}"
