@@ -47,35 +47,31 @@ Auth API   ML Model API
 
 ## Services
 
-### Authentication Services
+The API Gateway exposes domain-oriented REST API routes organized by semantic resource:
 
-| Service Name           | Upstream URL                       | Route Path            | Description        |
-| ---------------------- | ---------------------------------- | --------------------- | ------------------ |
-| mindsync-auth-login    | http://188.166.233.241:80/login    | `/v0-1/auth-login`    | User login         |
-| mindsync-auth-register | http://188.166.233.241:80/register | `/v0-1/auth-register` | User registration  |
-| mindsync-auth-profile  | http://188.166.233.241:80/profile  | `/v0-1/auth-profile`  | Profile management |
-
-### ML Model Services
-
-| Service Name                    | Upstream URL                                    | Route Path                     | Description              |
-| ------------------------------- | ----------------------------------------------- | ------------------------------ | ------------------------ |
-| mindsync-model-flask            | http://165.22.246.95:80/predict                 | `/v0-1/model-predict`          | Mental health prediction |
-| mindsync-model-advice           | http://165.22.246.95:80/advice                  | `/v0-1/model-advice`           | Get personalized advice  |
-| mindsync-model-result           | http://165.22.246.95:80/result                  | `/v0-1/model-result`           | Get prediction results   |
-| mindsync-model-history          | http://165.22.246.95:80/history                 | `/v0-1/model-history`          | User prediction history  |
-| mindsync-model-streak           | http://165.22.246.95:80/streak                  | `/v0-1/model-streak`           | User activity streaks    |
-| mindsync-model-weekly-chart     | http://165.22.246.95:80/chart/weekly            | `/v0-1/model-weekly-chart`     | Weekly chart data        |
-| mindsync-model-critical-factors | http://165.22.246.95:80/weekly-critical-factors | `/v0-1/model-critical-factors` | Weekly critical factors  |
-| mindsync-model-daily-suggestion | http://165.22.246.95:80/daily-suggestion        | `/v0-1/model-daily-suggestion` | Daily suggestions        |
+| Domain          | Resource          | Endpoint Pattern                            | Description                                 |
+| --------------- | ----------------- | ------------------------------------------- | ------------------------------------------- |
+| **Auth**        | user registration | `POST /v1/auth/register`                    | Create new user account                     |
+| **Auth**        | user login        | `POST /v1/auth/login`                       | Authenticate and retrieve token             |
+| **Users**       | user profile      | `GET/PUT /v1/users/{userId}/profile`        | View/update user profile                    |
+| **Users**       | request OTP       | `POST /v1/users/{userId}/request-otp`       | Request one-time password for verification  |
+| **Users**       | change password   | `POST /v1/users/{userId}/change-password`   | Update user password                        |
+| **Predictions** | create prediction | `POST /v1/predictions/create`               | Submit mental health assessment data        |
+| **Predictions** | prediction result | `GET /v1/predictions/{predictionId}/result` | Retrieve prediction results and analysis    |
+| **Analytics**   | history           | `GET /v1/users/{userId}/history`            | Get user's prediction history               |
+| **Analytics**   | streaks           | `GET /v1/users/{userId}/streaks`            | Get daily/weekly activity streaks           |
+| **Analytics**   | weekly chart      | `GET /v1/users/{userId}/weekly-chart`       | Get weekly wellness metrics chart           |
+| **Analytics**   | weekly factors    | `GET /v1/users/{userId}/weekly-factors`     | Get critical wellness factors for the week  |
+| **Analytics**   | daily suggestions | `GET /v1/users/{userId}/daily-suggestions`  | Get daily personalized wellness suggestions |
 
 ## API Endpoints
 
-### Authentication Endpoints
+### Authentication
 
 #### Register User
 
 ```
-POST /v0-1/auth-register
+POST /v1/auth/register
 Content-Type: application/json
 
 {
@@ -98,7 +94,7 @@ Response: 200 OK
 #### Login
 
 ```
-POST /v0-1/auth-login
+POST /v1/auth/login
 Content-Type: application/json
 
 {
@@ -122,10 +118,12 @@ Response: 200 OK
 }
 ```
 
+### User Profile Management
+
 #### Get Profile
 
 ```
-GET /v0-1/auth-profile
+GET /v1/users/{userId}/profile
 Authorization: Bearer <token>
 
 Response: 200 OK
@@ -145,7 +143,7 @@ Response: 200 OK
 #### Update Profile
 
 ```
-PUT /v0-1/auth-profile
+PUT /v1/users/{userId}/profile
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -170,12 +168,51 @@ Response: 200 OK
 }
 ```
 
-### ML Model Endpoints
-
-#### Predict Mental Health Score
+#### Request OTP
 
 ```
-POST /v0-1/model-predict
+POST /v1/users/{userId}/request-otp
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "contact_method": "email"
+}
+
+Response: 200 OK
+{
+  "success": true,
+  "message": "OTP sent successfully",
+  "expires_in": 300
+}
+```
+
+#### Change Password
+
+```
+POST /v1/users/{userId}/change-password
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "current_password": "oldpassword123",
+  "new_password": "newpassword456"
+}
+
+Response: 200 OK
+{
+  "success": true,
+  "message": "Password changed successfully"
+}
+```
+
+### Predictions
+
+#### Create Mental Health Prediction
+
+```
+POST /v1/predictions/create
+Authorization: Bearer <token>
 Content-Type: application/json
 
 {
@@ -187,8 +224,7 @@ Content-Type: application/json
   "stress_level_0_10": 7,
   "productivity_0_100": 65,
   "exercise_minutes_per_week": 120,
-  "social_hours_per_week": 5.0,
-  "user_id": "optional-uuid"
+  "social_hours_per_week": 5.0
 }
 
 Response: 202 Accepted
@@ -202,7 +238,8 @@ Response: 202 Accepted
 #### Get Prediction Result
 
 ```
-GET /v0-1/model-result/<prediction_id>
+GET /v1/predictions/{predictionId}/result
+Authorization: Bearer <token>
 
 Response: 200 OK
 {
@@ -224,10 +261,13 @@ Response: 200 OK
 }
 ```
 
-#### Get User History
+### Analytics
+
+#### Get Prediction History
 
 ```
-GET /v0-1/model-history/<user_id>
+GET /v1/users/{userId}/history
+Authorization: Bearer <token>
 
 Response: 200 OK
 {
@@ -246,10 +286,11 @@ Response: 200 OK
 }
 ```
 
-#### Get User Streak
+#### Get Activity Streaks
 
 ```
-GET /v0-1/model-streak/<user_id>
+GET /v1/users/{userId}/streaks
+Authorization: Bearer <token>
 
 Response: 200 OK
 {
@@ -268,10 +309,11 @@ Response: 200 OK
 }
 ```
 
-#### Get Weekly Chart
+#### Get Weekly Chart Data
 
 ```
-GET /v0-1/model-weekly-chart/<user_id>
+GET /v1/users/{userId}/weekly-chart
+Authorization: Bearer <token>
 
 Response: 200 OK
 {
@@ -310,7 +352,8 @@ Response: 200 OK
 #### Get Weekly Critical Factors
 
 ```
-GET /v0-1/model-critical-factors?user_id=<user_id>
+GET /v1/users/{userId}/weekly-factors
+Authorization: Bearer <token>
 
 Response: 200 OK
 {
@@ -321,10 +364,11 @@ Response: 200 OK
 }
 ```
 
-#### Get Daily Suggestion
+#### Get Daily Suggestions
 
 ```
-GET /v0-1/model-daily-suggestion?user_id=<user_id>
+GET /v1/users/{userId}/daily-suggestions
+Authorization: Bearer <token>
 
 Response: 200 OK
 {
@@ -345,8 +389,8 @@ The gateway is configured using [kong.yml](kong.yml) in declarative format (vers
 **Key Configuration Elements:**
 
 - **Format Version**: 3.0
-- **Services**: 11 microservice endpoints
-- **Routes**: Path-based routing with `/v0-1/` prefix
+- **Services**: 12 microservice routes organized by semantic domain
+- **Routes**: Domain-oriented API with `/v1/` prefix
 - **Plugins**: CORS and file-log enabled globally
 
 ### Environment Variables
@@ -493,13 +537,13 @@ Test the gateway is running:
 curl http://localhost:8001/status
 
 # Test HTTPS endpoint
-curl https://api.mindsync.my/v0-1/auth-login \
+curl https://api.mindsync.my/v1/auth/login \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"test123"}'
 
 # Test HTTP endpoint (will redirect to HTTPS in production)
-curl http://api.mindsync.my/v0-1/auth-login \
+curl http://api.mindsync.my/v1/auth/login \
   -X POST \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"test123"}'
@@ -517,14 +561,18 @@ All requests should be made to the domain `api.mindsync.my`:
 
 ```bash
 # Authentication endpoints
-https://api.mindsync.my/v0-1/auth-login
-https://api.mindsync.my/v0-1/auth-register
-https://api.mindsync.my/v0-1/auth-profile
+https://api.mindsync.my/v1/auth/register
+https://api.mindsync.my/v1/auth/login
+https://api.mindsync.my/v1/users/{userId}/profile
 
-# ML Model endpoints
-https://api.mindsync.my/v0-1/model-predict
-https://api.mindsync.my/v0-1/model-advice
-https://api.mindsync.my/v0-1/model-result
+# Prediction endpoints
+https://api.mindsync.my/v1/predictions/create
+https://api.mindsync.my/v1/predictions/{predictionId}/result
+
+# Analytics endpoints
+https://api.mindsync.my/v1/users/{userId}/history
+https://api.mindsync.my/v1/users/{userId}/streaks
+https://api.mindsync.my/v1/users/{userId}/weekly-chart
 ```
 
 ## Plugins
@@ -559,21 +607,21 @@ Logs all requests and responses to stdout.
 
 ```bash
 # Register
-curl -X POST http://localhost:8000/v0-1/auth-register \
+curl -X POST http://localhost:8000/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"test123","name":"Test User"}'
 
 # Login
-curl -X POST http://localhost:8000/v0-1/auth-login \
+curl -X POST http://localhost:8000/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"test123"}'
 ```
 
-**Test ML Model:**
+**Test Predictions:**
 
 ```bash
 # Submit prediction
-curl -X POST http://localhost:8000/v0-1/model-predict \
+curl -X POST http://localhost:8000/v1/predictions/create \
   -H "Content-Type: application/json" \
   -d '{
     "screen_time_hours": 8,
@@ -588,7 +636,7 @@ curl -X POST http://localhost:8000/v0-1/model-predict \
   }'
 
 # Check result
-curl http://localhost:8000/v0-1/model-result/<prediction_id>
+curl http://localhost:8000/v1/predictions/<prediction_id>/result
 ```
 
 ### Automated Testing
@@ -631,7 +679,7 @@ If experiencing CORS errors:
 
 If routes are not found:
 
-1. Verify route paths start with `/v0-1/`
+1. Verify route paths start with `/v1/`
 2. Check Kong has loaded the latest kong.yml
 3. Reload configuration:
 
@@ -671,25 +719,26 @@ plugins:
 ## Architecture Diagram
 
 ```
-┌─────────────────┐
-│  Client Apps    │
-│  (Web/Mobile)   │
-└────────┬────────┘
+┌──────────────────┐
+│  Client Apps     │
+│  (Web/Mobile)    │
+└────────┬─────────┘
          │
          ↓
-┌─────────────────────────────────┐
-│    Kong API Gateway             │
-│                                 │
-│  Routes:                        │
-│  • /v0-1/auth-*                │
-│  • /v0-1/model-*               │
-│                                 │
-│  Plugins:                       │
-│  • CORS                         │
-│  • File Log                     │
-└──────┬──────────────────┬───────┘
-       │                  │
-       ↓                  ↓
+┌────────────────────────────────────┐
+│    Kong API Gateway                │
+│                                    │
+│  Domains:                          │
+│  • /v1/auth/*                     │
+│  • /v1/users/*                    │
+│  • /v1/predictions/*              │
+│                                    │
+│  Plugins:                          │
+│  • CORS                            │
+│  • File Log                        │
+└──┬──────────┬──────────────────┬──┘
+   │          │                  │
+   ↓          ↓                  ↓
 ┌──────────────┐   ┌─────────────────┐
 │ Auth Service │   │  ML Model API   │
 │ (Spring Boot)│   │    (Flask)      │
