@@ -14,8 +14,10 @@ RUN python -m unittest discover -s tests -p "test_*.py" -v
 # Production stage - Kong Gateway
 FROM kong:3.6
 
-# Create SSL directory for Kong to write auto-generated certificates
-RUN mkdir -p /usr/local/kong/ssl
+# Create directories for declarative config and SSL certificates
+RUN mkdir -p /usr/local/kong/declarative /usr/local/kong/ssl
+
+COPY kong.yml /usr/local/kong/declarative/kong.yml
 
 ENV KONG_DATABASE=off
 ENV KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml
