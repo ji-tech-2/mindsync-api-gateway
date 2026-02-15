@@ -14,6 +14,7 @@ _format_version: "3.0"
 
 services:
   # ========== AUTH DOMAIN ==========
+  # POST /v1/auth/register → POST /register
   - name: auth-register-v1
     url: http://188.166.233.241:80/register
     routes:
@@ -22,6 +23,7 @@ services:
           - /v1/auth/register
         strip_path: true
 
+  # POST /v1/auth/login → POST /login
   - name: auth-login-v1
     url: http://188.166.233.241:80/login
     routes:
@@ -30,50 +32,54 @@ services:
           - /v1/auth/login
         strip_path: true
 
+  # POST /v1/auth/logout → POST /logout
+  - name: auth-logout-v1
+    url: http://188.166.233.241:80/logout
+    routes:
+      - name: auth-logout-route-v1
+        paths:
+          - /v1/auth/logout
+        strip_path: true
+
   # ========== USERS DOMAIN ==========
+  # GET|PUT /v1/users/me/profile → GET|PUT /profile (JWT cookie auth, no user_id param)
   - name: user-profile-v1
     url: http://188.166.233.241:80/profile
     routes:
       - name: user-profile-route-v1
         paths:
-          - /v1/users/(?<user_id>[^/]+)/profile
+          - /v1/users/me/profile
         strip_path: true
-        plugins:
-          - name: request-transformer
-            config:
-              add:
-                querystring:
-                  - "user_id:$(uri_captures.user_id)"
 
-  - name: user-profile-request-otp-v1
+  # POST /v1/users/me/request-otp → POST /profile/request-otp (body: {email})
+  - name: user-request-otp-v1
     url: http://188.166.233.241:80/profile/request-otp
     routes:
-      - name: user-profile-request-otp-route-v1
+      - name: user-request-otp-route-v1
         paths:
-          - /v1/users/(?<user_id>[^/]+)/request-otp
+          - /v1/users/me/request-otp
         strip_path: true
-        plugins:
-          - name: request-transformer
-            config:
-              add:
-                querystring:
-                  - "user_id:$(uri_captures.user_id)"
 
-  - name: user-profile-change-password-v1
+  # POST /v1/users/me/verify-otp → POST /profile/verify-otp (body: {email, otp})
+  - name: user-verify-otp-v1
+    url: http://188.166.233.241:80/profile/verify-otp
+    routes:
+      - name: user-verify-otp-route-v1
+        paths:
+          - /v1/users/me/verify-otp
+        strip_path: true
+
+  # POST /v1/users/me/change-password → POST /profile/change-password (body: {email, otp, newPassword})
+  - name: user-change-password-v1
     url: http://188.166.233.241:80/profile/change-password
     routes:
-      - name: user-profile-change-password-route-v1
+      - name: user-change-password-route-v1
         paths:
-          - /v1/users/(?<user_id>[^/]+)/change-password
+          - /v1/users/me/change-password
         strip_path: true
-        plugins:
-          - name: request-transformer
-            config:
-              add:
-                querystring:
-                  - "user_id:$(uri_captures.user_id)"
 
   # ========== PREDICTIONS DOMAIN ==========
+  # POST /v1/predictions → POST /predict
   - name: prediction-create-v1
     url: http://165.22.246.95:80/predict
     routes:
@@ -82,55 +88,56 @@ services:
           - /v1/predictions/create
         strip_path: true
 
+  # GET /v1/predictions/{prediction_id}/result → GET /result/{prediction_id} (path param)
   - name: prediction-result-v1
-    url: http://165.22.246.95:80/result
+    url: http://165.22.246.95:80
     routes:
       - name: prediction-result-route-v1
         paths:
-          - /v1/predictions/(?<prediction_id>[^/]+)/result
-        strip_path: true
+          - ~/v1/predictions/(?<prediction_id>[^/]+)/result$
+        strip_path: false
         plugins:
           - name: request-transformer
             config:
-              add:
-                querystring:
-                  - "prediction_id:$(uri_captures.prediction_id)"
+              replace:
+                uri: "/result/$(uri_captures.prediction_id)"
 
   # ========== ANALYTICS DOMAIN ==========
+  # GET /v1/users/{user_id}/history → GET /history/{user_id} (path param)
   - name: analytics-history-v1
-    url: http://165.22.246.95:80/history
+    url: http://165.22.246.95:80
     routes:
       - name: analytics-history-route-v1
         paths:
-          - /v1/users/(?<user_id>[^/]+)/history
-        strip_path: true
+          - ~/v1/users/(?<user_id>[^/]+)/history$
+        strip_path: false
         plugins:
           - name: request-transformer
             config:
-              add:
-                querystring:
-                  - "user_id:$(uri_captures.user_id)"
+              replace:
+                uri: "/history/$(uri_captures.user_id)"
 
+  # GET /v1/users/{user_id}/streaks → GET /streak/{user_id} (path param)
   - name: analytics-streaks-v1
-    url: http://165.22.246.95:80/streak
+    url: http://165.22.246.95:80
     routes:
       - name: analytics-streaks-route-v1
         paths:
-          - /v1/users/(?<user_id>[^/]+)/streaks
-        strip_path: true
+          - ~/v1/users/(?<user_id>[^/]+)/streaks$
+        strip_path: false
         plugins:
           - name: request-transformer
             config:
-              add:
-                querystring:
-                  - "user_id:$(uri_captures.user_id)"
+              replace:
+                uri: "/streak/$(uri_captures.user_id)"
 
+  # GET /v1/users/{user_id}/weekly-chart → GET /chart/weekly?user_id={user_id} (query param)
   - name: analytics-chart-weekly-v1
     url: http://165.22.246.95:80/chart/weekly
     routes:
       - name: analytics-chart-weekly-route-v1
         paths:
-          - /v1/users/(?<user_id>[^/]+)/weekly-chart
+          - ~/v1/users/(?<user_id>[^/]+)/weekly-chart$
         strip_path: true
         plugins:
           - name: request-transformer
@@ -139,12 +146,13 @@ services:
                 querystring:
                   - "user_id:$(uri_captures.user_id)"
 
+  # GET /v1/users/{user_id}/weekly-factors → GET /weekly-critical-factors?user_id={user_id} (query param)
   - name: analytics-factors-weekly-v1
     url: http://165.22.246.95:80/weekly-critical-factors
     routes:
       - name: analytics-factors-weekly-route-v1
         paths:
-          - /v1/users/(?<user_id>[^/]+)/weekly-factors
+          - ~/v1/users/(?<user_id>[^/]+)/weekly-factors$
         strip_path: true
         plugins:
           - name: request-transformer
@@ -153,12 +161,13 @@ services:
                 querystring:
                   - "user_id:$(uri_captures.user_id)"
 
+  # GET /v1/users/{user_id}/daily-suggestions → GET /daily-suggestion?user_id={user_id} (query param)
   - name: analytics-suggestions-daily-v1
     url: http://165.22.246.95:80/daily-suggestion
     routes:
       - name: analytics-suggestions-daily-route-v1
         paths:
-          - /v1/users/(?<user_id>[^/]+)/daily-suggestions
+          - ~/v1/users/(?<user_id>[^/]+)/daily-suggestions$
         strip_path: true
         plugins:
           - name: request-transformer
