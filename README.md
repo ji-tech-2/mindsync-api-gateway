@@ -53,6 +53,7 @@ The API Gateway exposes domain-oriented REST API routes organized by semantic re
 | --------------- | ----------------- | ------------------------------------------- | ------------------------------------------- |
 | **Auth**        | user registration | `POST /v1/auth/register`                    | Create new user account                     |
 | **Auth**        | user login        | `POST /v1/auth/login`                       | Authenticate and retrieve token             |
+| **Users**       | current user      | `GET /v1/users/me`                          | Get authenticated user's data               |
 | **Users**       | user profile      | `GET/PUT /v1/users/{userId}/profile`        | View/update user profile                    |
 | **Users**       | request OTP       | `POST /v1/users/{userId}/request-otp`       | Request one-time password for verification  |
 | **Users**       | change password   | `POST /v1/users/{userId}/change-password`   | Update user password                        |
@@ -119,6 +120,26 @@ Response: 200 OK
 ```
 
 ### User Profile Management
+
+#### Get Current User (Me)
+
+```
+GET /v1/users/me
+Authorization: Bearer <token>
+
+Response: 200 OK
+{
+  "success": true,
+  "data": {
+    "userId": 1,
+    "email": "user@example.com",
+    "name": "John Doe",
+    "dob": "1990-01-01",
+    "gender": "Male",
+    "occupation": "Engineer"
+  }
+}
+```
 
 #### Get Profile
 
