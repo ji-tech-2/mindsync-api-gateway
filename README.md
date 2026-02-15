@@ -51,11 +51,13 @@ The API Gateway exposes domain-oriented REST API routes organized by semantic re
 
 | Domain          | Resource          | Endpoint Pattern                            | Description                                 |
 | --------------- | ----------------- | ------------------------------------------- | ------------------------------------------- |
-| **Auth**        | user registration | `POST /v1/auth/register`                    | Create new user account                     |
-| **Auth**        | user login        | `POST /v1/auth/login`                       | Authenticate and retrieve token             |
-| **Users**       | user profile      | `GET/PUT /v1/users/{userId}/profile`        | View/update user profile                    |
-| **Users**       | request OTP       | `POST /v1/users/{userId}/request-otp`       | Request one-time password for verification  |
-| **Users**       | change password   | `POST /v1/users/{userId}/change-password`   | Update user password                        |
+| **Auth**        | register          | `POST /v1/auth/register`                    | Create new user account                     |
+| **Auth**        | login             | `POST /v1/auth/login`                       | Authenticate and receive JWT cookie         |
+| **Auth**        | logout            | `POST /v1/auth/logout`                      | Clear authentication cookie                 |
+| **Users**       | profile           | `GET/PUT /v1/users/me/profile`              | View/update user profile (JWT auth)         |
+| **Users**       | request OTP       | `POST /v1/users/me/request-otp`             | Request OTP for password reset              |
+| **Users**       | verify OTP        | `POST /v1/users/me/verify-otp`              | Verify OTP code                             |
+| **Users**       | change password   | `POST /v1/users/me/change-password`         | Change password after OTP verification      |
 | **Predictions** | create prediction | `POST /v1/predictions/create`               | Submit mental health assessment data        |
 | **Predictions** | prediction result | `GET /v1/predictions/{predictionId}/result` | Retrieve prediction results and analysis    |
 | **Analytics**   | history           | `GET /v1/users/{userId}/history`            | Get user's prediction history               |
@@ -105,8 +107,7 @@ Content-Type: application/json
 Response: 200 OK
 {
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "type": "Bearer",
+  "message": "Login successful",
   "user": {
     "userId": 1,
     "email": "user@example.com",
@@ -118,13 +119,27 @@ Response: 200 OK
 }
 ```
 
+Note: JWT token is automatically set as an HttpOnly, Secure, SameSite=Strict cookie.
+
+#### Logout
+
+```
+POST /v1/auth/logout
+
+Response: 200 OK
+{
+  "success": true,
+  "message": "Logout successful"
+}
+```
+
 ### User Profile Management
 
 #### Get Profile
 
 ```
-GET /v1/users/{userId}/profile
-Authorization: Bearer <token>
+GET /v1/users/me/profile
+Credentials: include
 
 Response: 200 OK
 {
@@ -143,8 +158,8 @@ Response: 200 OK
 #### Update Profile
 
 ```
-PUT /v1/users/{userId}/profile
-Authorization: Bearer <token>
+PUT /v1/users/me/profile
+Credentials: include
 Content-Type: application/json
 
 {
@@ -171,32 +186,48 @@ Response: 200 OK
 #### Request OTP
 
 ```
-POST /v1/users/{userId}/request-otp
-Authorization: Bearer <token>
+POST /v1/users/me/request-otp
 Content-Type: application/json
 
 {
-  "contact_method": "email"
+  "email": "user@example.com"
 }
 
 Response: 200 OK
 {
   "success": true,
-  "message": "OTP sent successfully",
-  "expires_in": 300
+  "message": "OTP has been sent to your email"
+}
+```
+
+#### Verify OTP
+
+```
+POST /v1/users/me/verify-otp
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "otp": "123456"
+}
+
+Response: 200 OK
+{
+  "success": true,
+  "message": "OTP verified successfully"
 }
 ```
 
 #### Change Password
 
 ```
-POST /v1/users/{userId}/change-password
-Authorization: Bearer <token>
+POST /v1/users/me/change-password
 Content-Type: application/json
 
 {
-  "current_password": "oldpassword123",
-  "new_password": "newpassword456"
+  "email": "user@example.com",
+  "otp": "123456",
+  "newPassword": "newpassword456"
 }
 
 Response: 200 OK
@@ -389,7 +420,7 @@ The gateway is configured using [kong.yml](kong.yml) in declarative format (vers
 **Key Configuration Elements:**
 
 - **Format Version**: 3.0
-- **Services**: 12 microservice routes organized by semantic domain
+- **Services**: 15 microservice routes organized by semantic domain
 - **Routes**: Domain-oriented API with `/v1/` prefix
 - **Plugins**: CORS and file-log enabled globally
 
@@ -563,7 +594,8 @@ All requests should be made to the domain `api.mindsync.my`:
 # Authentication endpoints
 https://api.mindsync.my/v1/auth/register
 https://api.mindsync.my/v1/auth/login
-https://api.mindsync.my/v1/users/{userId}/profile
+https://api.mindsync.my/v1/auth/logout
+https://api.mindsync.my/v1/users/me/profile
 
 # Prediction endpoints
 https://api.mindsync.my/v1/predictions/create
