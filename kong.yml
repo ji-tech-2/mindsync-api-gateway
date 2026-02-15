@@ -73,14 +73,6 @@ services:
                 querystring:
                   - "user_id:$(uri_captures.user_id)"
 
-  - name: user-me-v1
-    url: http://188.166.233.241:80/me
-    routes:
-      - name: user-me-route-v1
-        paths:
-          - /v1/users/me
-        strip_path: true
-
   # ========== PREDICTIONS DOMAIN ==========
   - name: prediction-create-v1
     url: http://165.22.246.95:80/predict
