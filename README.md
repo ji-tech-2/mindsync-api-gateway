@@ -49,23 +49,23 @@ Auth API   ML Model API
 
 The API Gateway exposes domain-oriented REST API routes organized by semantic resource:
 
-| Domain          | Resource          | Endpoint Pattern                            | Description                                 |
-| --------------- | ----------------- | ------------------------------------------- | ------------------------------------------- |
-| **Auth**        | register          | `POST /v1/auth/register`                    | Create new user account                     |
-| **Auth**        | login             | `POST /v1/auth/login`                       | Authenticate and receive JWT cookie         |
-| **Auth**        | logout            | `POST /v1/auth/logout`                      | Clear authentication cookie                 |
-| **Auth**        | reset password    | `POST /v1/auth/reset-password`              | Reset forgotten password using OTP          |
-| **Users**       | profile           | `GET/PUT /v1/users/me/profile`              | View/update user profile (JWT auth)         |
-| **Users**       | request OTP       | `POST /v1/users/me/request-otp`             | Request OTP for password reset              |
-| **Users**       | verify OTP        | `POST /v1/users/me/verify-otp`              | Verify OTP code                             |
-| **Users**       | change password   | `POST /v1/users/me/change-password`         | Change password (requires JWT auth)         |
-| **Predictions** | create prediction | `POST /v1/predictions/create`               | Submit mental health assessment data        |
-| **Predictions** | prediction result | `GET /v1/predictions/{predictionId}/result` | Retrieve prediction results and analysis    |
-| **Analytics**   | history           | `GET /v1/users/{userId}/history`            | Get user's prediction history               |
-| **Analytics**   | streaks           | `GET /v1/users/{userId}/streaks`            | Get daily/weekly activity streaks           |
-| **Analytics**   | weekly chart      | `GET /v1/users/{userId}/weekly-chart`       | Get weekly wellness metrics chart           |
-| **Analytics**   | weekly factors    | `GET /v1/users/{userId}/weekly-factors`     | Get critical wellness factors for the week  |
-| **Analytics**   | daily suggestions | `GET /v1/users/{userId}/daily-suggestions`  | Get daily personalized wellness suggestions |
+| Domain          | Resource           | Endpoint Pattern                            | Description                                 |
+| --------------- | ------------------ | ------------------------------------------- | ------------------------------------------- |
+| **Auth**        | register           | `POST /v1/auth/register`                    | Create new user account                     |
+| **Auth**        | login              | `POST /v1/auth/login`                       | Authenticate and receive JWT cookie         |
+| **Auth**        | logout             | `POST /v1/auth/logout`                      | Clear authentication cookie                 |
+| **Auth**        | reset password     | `POST /v1/auth/reset-password`              | Reset forgotten password using OTP          |
+| **Auth**        | request OTP        | `POST /v1/auth/request-otp`                 | Request OTP for password reset              |
+| **Auth**        | request signup OTP | `POST /v1/auth/request-signup-otp`          | Request OTP for email verification (signup) |
+| **Users**       | profile            | `GET/PUT /v1/users/me/profile`              | View/update user profile (JWT auth)         |
+| **Users**       | change password    | `POST /v1/users/me/change-password`         | Change password (requires JWT auth)         |
+| **Predictions** | create prediction  | `POST /v1/predictions/create`               | Submit mental health assessment data        |
+| **Predictions** | prediction result  | `GET /v1/predictions/{predictionId}/result` | Retrieve prediction results and analysis    |
+| **Analytics**   | history            | `GET /v1/users/{userId}/history`            | Get user's prediction history               |
+| **Analytics**   | streaks            | `GET /v1/users/{userId}/streaks`            | Get daily/weekly activity streaks           |
+| **Analytics**   | weekly chart       | `GET /v1/users/{userId}/weekly-chart`       | Get weekly wellness metrics chart           |
+| **Analytics**   | weekly factors     | `GET /v1/users/{userId}/weekly-factors`     | Get critical wellness factors for the week  |
+| **Analytics**   | daily suggestions  | `GET /v1/users/{userId}/daily-suggestions`  | Get daily personalized wellness suggestions |
 
 ## API Endpoints
 
@@ -93,6 +93,25 @@ Response: 200 OK
   }
 }
 ```
+
+#### Request Signup OTP (Email Verification)
+
+```
+POST /v1/auth/request-signup-otp
+Content-Type: application/json
+
+{
+  "email": "user@example.com"
+}
+
+Response: 200 OK
+{
+  "success": true,
+  "message": "Signup OTP has been sent to your email"
+}
+```
+
+Note: This endpoint is for requesting an OTP during the signup process for email verification. No authentication required.
 
 #### Login
 
@@ -133,6 +152,46 @@ Response: 200 OK
   "message": "Logout successful"
 }
 ```
+
+#### Request OTP (Password Reset)
+
+```
+POST /v1/auth/request-otp
+Content-Type: application/json
+
+{
+  "email": "user@example.com"
+}
+
+Response: 200 OK
+{
+  "success": true,
+  "message": "OTP has been sent to your email"
+}
+```
+
+Note: This endpoint is for requesting an OTP for password reset. No authentication required.
+
+#### Reset Password (Forgotten Password)
+
+```
+POST /v1/auth/reset-password
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "otp": "123456",
+  "newPassword": "newpassword456"
+}
+
+Response: 200 OK
+{
+  "success": true,
+  "message": "Password reset successfully"
+}
+```
+
+Note: This endpoint is for resetting forgotten passwords using OTP verification. No authentication required.
 
 ### User Profile Management
 
@@ -183,62 +242,6 @@ Response: 200 OK
   }
 }
 ```
-
-#### Request OTP
-
-```
-POST /v1/users/me/request-otp
-Content-Type: application/json
-
-{
-  "email": "user@example.com"
-}
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "OTP has been sent to your email"
-}
-```
-
-#### Verify OTP
-
-```
-POST /v1/users/me/verify-otp
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "otp": "123456"
-}
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "OTP verified successfully"
-}
-```
-
-#### Reset Password (Forgotten Password)
-
-```
-POST /v1/auth/reset-password
-Content-Type: application/json
-
-{
-  "email": "user@example.com",
-  "otp": "123456",
-  "newPassword": "newpassword456"
-}
-
-Response: 200 OK
-{
-  "success": true,
-  "message": "Password reset successfully"
-}
-```
-
-Note: This endpoint is for resetting forgotten passwords using OTP verification. No authentication required.
 
 #### Change Password (Authenticated)
 
@@ -444,7 +447,7 @@ The gateway is configured using [kong.yml](kong.yml) in declarative format (vers
 **Key Configuration Elements:**
 
 - **Format Version**: 3.0
-- **Services**: 15 microservice routes organized by semantic domain
+- **Services**: 14 v1 microservice routes organized by semantic domain + 10 legacy v0-1 routes
 - **Routes**: Domain-oriented API with `/v1/` prefix
 - **Plugins**: CORS and file-log enabled globally
 
@@ -619,7 +622,13 @@ All requests should be made to the domain `api.mindsync.my`:
 https://api.mindsync.my/v1/auth/register
 https://api.mindsync.my/v1/auth/login
 https://api.mindsync.my/v1/auth/logout
+https://api.mindsync.my/v1/auth/reset-password
+https://api.mindsync.my/v1/auth/request-otp
+https://api.mindsync.my/v1/auth/request-signup-otp
+
+# User profile endpoints
 https://api.mindsync.my/v1/users/me/profile
+https://api.mindsync.my/v1/users/me/change-password
 
 # Prediction endpoints
 https://api.mindsync.my/v1/predictions/create
@@ -629,6 +638,8 @@ https://api.mindsync.my/v1/predictions/{predictionId}/result
 https://api.mindsync.my/v1/users/{userId}/history
 https://api.mindsync.my/v1/users/{userId}/streaks
 https://api.mindsync.my/v1/users/{userId}/weekly-chart
+https://api.mindsync.my/v1/users/{userId}/weekly-factors
+https://api.mindsync.my/v1/users/{userId}/daily-suggestions
 ```
 
 ## Plugins
@@ -662,6 +673,11 @@ Logs all requests and responses to stdout.
 **Test Authentication:**
 
 ```bash
+# Request signup OTP for email verification
+curl -X POST http://localhost:8000/v1/auth/request-signup-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com"}'
+
 # Register
 curl -X POST http://localhost:8000/v1/auth/register \
   -H "Content-Type: application/json" \
@@ -671,6 +687,16 @@ curl -X POST http://localhost:8000/v1/auth/register \
 curl -X POST http://localhost:8000/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"test123"}'
+
+# Request OTP for password reset
+curl -X POST http://localhost:8000/v1/auth/request-otp \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com"}'
+
+# Reset password
+curl -X POST http://localhost:8000/v1/auth/reset-password \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","otp":"123456","newPassword":"newpass456"}'
 ```
 
 **Test Predictions:**
@@ -783,11 +809,23 @@ plugins:
          ↓
 ┌────────────────────────────────────┐
 │    Kong API Gateway                │
+│    (api.mindsync.my)               │
 │                                    │
 │  Domains:                          │
 │  • /v1/auth/*                     │
+│    - register, login, logout       │
+│    - reset-password                │
+│    - request-otp                   │
+│    - request-signup-otp            │
 │  • /v1/users/*                    │
+│    - me/profile                    │
+│    - me/change-password            │
 │  • /v1/predictions/*              │
+│    - create, {id}/result           │
+│  • /v1/users/{id}/*               │
+│    - history, streaks              │
+│    - weekly-chart, weekly-factors  │
+│    - daily-suggestions             │
 │                                    │
 │  Plugins:                          │
 │  • CORS                            │
@@ -799,13 +837,24 @@ plugins:
 │ Auth Service │   │  ML Model API   │
 │ (Spring Boot)│   │    (Flask)      │
 │              │   │                 │
+│ 188.166...   │   │  165.22...      │
 │ Port: 80     │   │  Port: 80       │
 └──────────────┘   └─────────────────┘
 ```
 
 ## Version History
 
-- **v0.1**: Initial API Gateway configuration
+- **v1.0**: Domain-oriented API Gateway
+  - Domain-based routing: Auth, Users, Predictions, Analytics
+  - 6 Auth routes (register, login, logout, reset-password, request-otp, request-signup-otp)
+  - 2 User routes (profile, change-password)
+  - 2 Prediction routes (create, result)
+  - 5 Analytics routes (history, streaks, weekly-chart, weekly-factors, daily-suggestions)
+  - HTTPS support with SSL/TLS
+  - CORS configuration
+  - Request logging
+
+- **v0.1**: Initial API Gateway configuration (Legacy)
   - Basic routing for auth and model services
   - CORS support
   - Request logging

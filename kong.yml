@@ -50,6 +50,24 @@ services:
           - /v1/auth/reset-password
         strip_path: true
 
+  # POST /v1/auth/request-otp → POST /profile/request-otp (body: {email})
+  - name: auth-request-otp-v1
+    url: http://188.166.233.241:80/profile/request-otp
+    routes:
+      - name: auth-request-otp-route-v1
+        paths:
+          - /v1/auth/request-otp
+        strip_path: true
+
+  # POST /v1/auth/request-otp → POST /profile/request-otp (body: {email})
+  - name: auth-request-signup-otp-v1
+    url: http://188.166.233.241:80/profile/request-signup-otp
+    routes:
+      - name: auth-request-signup-otp-route-v1
+        paths:
+          - /v1/auth/request-signup-otp
+        strip_path: true
+
   # ========== USERS DOMAIN ==========
   # GET|PUT /v1/users/me/profile → GET|PUT /profile (JWT cookie auth, no user_id param)
   - name: user-profile-v1
@@ -58,24 +76,6 @@ services:
       - name: user-profile-route-v1
         paths:
           - /v1/users/me/profile
-        strip_path: true
-
-  # POST /v1/users/me/request-otp → POST /profile/request-otp (body: {email})
-  - name: user-request-otp-v1
-    url: http://188.166.233.241:80/profile/request-otp
-    routes:
-      - name: user-request-otp-route-v1
-        paths:
-          - /v1/users/me/request-otp
-        strip_path: true
-
-  # POST /v1/users/me/verify-otp → POST /profile/verify-otp (body: {email, otp})
-  - name: user-verify-otp-v1
-    url: http://188.166.233.241:80/profile/verify-otp
-    routes:
-      - name: user-verify-otp-route-v1
-        paths:
-          - /v1/users/me/verify-otp
         strip_path: true
 
   # POST /v1/users/me/change-password → POST /profile/change-password (JWT auth, body: {oldPassword, newPassword})
