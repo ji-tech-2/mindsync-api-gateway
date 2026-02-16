@@ -54,10 +54,11 @@ The API Gateway exposes domain-oriented REST API routes organized by semantic re
 | **Auth**        | register          | `POST /v1/auth/register`                    | Create new user account                     |
 | **Auth**        | login             | `POST /v1/auth/login`                       | Authenticate and receive JWT cookie         |
 | **Auth**        | logout            | `POST /v1/auth/logout`                      | Clear authentication cookie                 |
+| **Auth**        | reset password    | `POST /v1/auth/reset-password`              | Reset forgotten password using OTP          |
 | **Users**       | profile           | `GET/PUT /v1/users/me/profile`              | View/update user profile (JWT auth)         |
 | **Users**       | request OTP       | `POST /v1/users/me/request-otp`             | Request OTP for password reset              |
 | **Users**       | verify OTP        | `POST /v1/users/me/verify-otp`              | Verify OTP code                             |
-| **Users**       | change password   | `POST /v1/users/me/change-password`         | Change password after OTP verification      |
+| **Users**       | change password   | `POST /v1/users/me/change-password`         | Change password (requires JWT auth)         |
 | **Predictions** | create prediction | `POST /v1/predictions/create`               | Submit mental health assessment data        |
 | **Predictions** | prediction result | `GET /v1/predictions/{predictionId}/result` | Retrieve prediction results and analysis    |
 | **Analytics**   | history           | `GET /v1/users/{userId}/history`            | Get user's prediction history               |
@@ -218,10 +219,10 @@ Response: 200 OK
 }
 ```
 
-#### Change Password
+#### Reset Password (Forgotten Password)
 
 ```
-POST /v1/users/me/change-password
+POST /v1/auth/reset-password
 Content-Type: application/json
 
 {
@@ -233,9 +234,32 @@ Content-Type: application/json
 Response: 200 OK
 {
   "success": true,
+  "message": "Password reset successfully"
+}
+```
+
+Note: This endpoint is for resetting forgotten passwords using OTP verification. No authentication required.
+
+#### Change Password (Authenticated)
+
+```
+POST /v1/users/me/change-password
+Credentials: include
+Content-Type: application/json
+
+{
+  "oldPassword": "currentpassword123",
+  "newPassword": "newpassword456"
+}
+
+Response: 200 OK
+{
+  "success": true,
   "message": "Password changed successfully"
 }
 ```
+
+Note: This endpoint is for authenticated users changing their password. Requires JWT cookie.
 
 ### Predictions
 
