@@ -17,14 +17,22 @@ FROM kong:3.6
 # Create directories for declarative config and SSL certificates
 RUN mkdir -p /usr/local/kong/declarative /usr/local/kong/ssl
 
-COPY kong.yml /usr/local/kong/declarative/kong.yml
+# Install decK for declarative config templating (env var interpolation)
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends curl \
+  && curl -sL https://github.com/kong/deck/releases/download/v1.36.1/deck_1.36.1_linux_amd64.tar.gz \
+  -o /tmp/deck.tar.gz \
+  && tar -xzf /tmp/deck.tar.gz -C /usr/local/bin deck \
+  && rm /tmp/deck.tar.gz \
+  && apt-get purge -y curl \
+  && apt-get autoremove -y \
+  && rm -rf /var/lib/apt/lists/*
 
-# Custom entrypoint to inject JWT_PUBLIC_KEY into kong.yml at runtime
+# Copy the kong.yml template (contains ${{ env "..." }} placeholders)
+COPY kong.yml /usr/local/kong/declarative/kong.yml.tpl
+
+# Custom entrypoint: render template with deck, then start Kong
 COPY --chmod=755 docker-entrypoint-custom.sh /docker-entrypoint-custom.sh
-
-# JWT Public Key for asymmetric signature verification
-ARG JWT_PUBLIC_KEY
-ENV JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
 
 ENV KONG_DATABASE=off
 ENV KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml

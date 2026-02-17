@@ -34,12 +34,12 @@ jobs:
       - name: Deploy to DigitalOcean via SSH
         uses: appleboy/ssh-action@v1.2.2
         env:
-          JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
+          DECK_JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: JWT_PUBLIC_KEY
+          envs: DECK_JWT_PUBLIC_KEY
           script: |
             set -e
             echo "[INFO] Pulling Kong image with tag: ${{ steps.image.outputs.tag }}"
@@ -61,7 +61,7 @@ jobs:
               -e KONG_ADMIN_LISTEN="0.0.0.0:8001" \
               -e KONG_SSL_CERT=/usr/local/kong/ssl/cert.pem \
               -e KONG_SSL_CERT_KEY=/usr/local/kong/ssl/key.pem \
-              -e "JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}" \
+              -e "DECK_JWT_PUBLIC_KEY=${DECK_JWT_PUBLIC_KEY}" \
               --restart always \
               ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:${{ steps.image.outputs.tag }}
 

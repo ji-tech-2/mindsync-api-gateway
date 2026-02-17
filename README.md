@@ -68,7 +68,7 @@ The API Gateway implements JWT (JSON Web Token) authentication using RS256 asymm
 **JWT Configuration:**
 
 - **Algorithm**: RS256 (RSA with SHA-256)
-- **Public Key Source**: `JWT_PUBLIC_KEY` environment variable
+- **Public Key Source**: `DECK_JWT_PUBLIC_KEY` environment variable (resolved by decK at container startup)
 - **Token Location**: Cookie named `token`
 - **Claim Validation**: `iss` (issuer) claim is validated
 
@@ -514,10 +514,12 @@ KONG_PROXY_ACCESS_LOG=/dev/stdout
 KONG_ADMIN_ACCESS_LOG=/dev/stdout
 KONG_PROXY_ERROR_LOG=/dev/stderr
 KONG_ADMIN_ERROR_LOG=/dev/stderr
-JWT_PUBLIC_KEY=<your-rsa-public-key>
+DECK_JWT_PUBLIC_KEY=<your-rsa-public-key>
 ```
 
-**JWT_PUBLIC_KEY** must contain the RSA public key in PEM format for JWT signature verification:
+**DECK_JWT_PUBLIC_KEY** must contain the RSA public key in PEM format for JWT signature verification.
+The `kong.yml` template uses decK's `${{ env "DECK_JWT_PUBLIC_KEY" }}` syntax, which is resolved
+at container startup before Kong loads the config:
 
 ```
 -----BEGIN PUBLIC KEY-----
@@ -539,7 +541,7 @@ For CI/CD deployment, this should be stored as a GitHub Secret.
 - RSA public key for JWT signature verification
 - Domain DNS configured to point to your server
 - GitHub Secrets configured:
-  - `JWT_PUBLIC_KEY` - RSA public key for JWT verification
+  - `JWT_PUBLIC_KEY` - RSA public key for JWT verification (passed as `DECK_JWT_PUBLIC_KEY` at runtime)
   - `DOCKERHUB_USERNAME` - Docker Hub username
   - `DOCKERHUB_TOKEN` - Docker Hub access token
   - `DO_HOST` - DigitalOcean droplet host
@@ -608,14 +610,15 @@ certificates:
 #### Option 1: Docker (Recommended)
 
 ```bash
-# Build the image with JWT public key
-docker build --build-arg JWT_PUBLIC_KEY="$(cat jwt-public-key.pem)" -t mindsync-gateway .
+# Build the image (no secrets needed at build time)
+docker build -t mindsync-gateway .
 
 # Run with SSL certificates and JWT authentication
+# The DECK_JWT_PUBLIC_KEY env var is resolved by decK at container startup
 docker run -d --name kong-gateway \
   -v $(pwd)/ssl/cert.pem:/usr/local/kong/ssl/cert.pem:ro \
   -v $(pwd)/ssl/key.pem:/usr/local/kong/ssl/key.pem:ro \
-  -e "JWT_PUBLIC_KEY=$(cat jwt-public-key.pem)" \
+  -e "DECK_JWT_PUBLIC_KEY=$(cat jwt-public-key.pem)" \
   -p 80:80 \
   -p 443:443 \
   -p 8001:8001 \
@@ -625,7 +628,7 @@ docker run -d --name kong-gateway \
 docker run -d --name kong-gateway \
   -v /etc/letsencrypt/live/api.mindsync.my/fullchain.pem:/usr/local/kong/ssl/cert.pem:ro \
   -v /etc/letsencrypt/live/api.mindsync.my/privkey.pem:/usr/local/kong/ssl/key.pem:ro \
-  -e "JWT_PUBLIC_KEY=$(cat jwt-public-key.pem)" \
+  -e "DECK_JWT_PUBLIC_KEY=$(cat jwt-public-key.pem)" \
   -p 80:80 \
   -p 443:443 \
   -p 8001:8001 \
@@ -643,15 +646,13 @@ services:
   kong-gateway:
     build:
       context: .
-      args:
-        JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
     container_name: mindsync-api-gateway
     ports:
       - "80:80"
       - "443:443"
       - "8001:8001"
     environment:
-      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+      - DECK_JWT_PUBLIC_KEY=${DECK_JWT_PUBLIC_KEY}
     volumes:
       - ./ssl/cert.pem:/usr/local/kong/ssl/cert.pem:ro
       - ./ssl/key.pem:/usr/local/kong/ssl/key.pem:ro
@@ -661,7 +662,7 @@ services:
 Create a `.env` file:
 
 ```env
-JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
+DECK_JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
 -----END PUBLIC KEY-----"
 ```
@@ -871,11 +872,16 @@ If receiving 401 errors on protected routes:
    - Public key must match the private key used by auth service
    - Key format must be PEM (including BEGIN/END markers)
 
-3. **Verify token expiration**:
+3. **Verify DECK_JWT_PUBLIC_KEY env var**:
+   - Must be set at `docker run` time (not build time)
+   - Key must include `-----BEGIN PUBLIC KEY-----` / `-----END PUBLIC KEY-----` markers
+   - Check container logs for "kong.yml rendered successfully" message
+
+4. **Verify token expiration**:
    - JWT `exp` claim must be in the future
    - Check server time synchronization
 
-4. **Check issuer claim**:
+5. **Check issuer claim**:
    - JWT must have `iss` claim with value `mindsync-issuer`
 
 ```bash
@@ -963,6 +969,12 @@ plugins:
 ```
 
 ## Version History
+
+- **v1.2**: decK-based Configuration Rendering
+  - Replaced custom entrypoint env-var substitution with decK `file render`
+  - `kong.yml` uses `${{ env "DECK_JWT_PUBLIC_KEY" }}` for native env var interpolation
+  - Docker image is now environment-agnostic (no secrets baked at build time)
+  - Simplified CI/CD: build-args removed from artifact workflow
 
 - **v1.1**: JWT Authentication & Security Enhancement
   - JWT authentication with RS256 asymmetric encryption
