@@ -139,7 +139,7 @@ services:
 
   # GET /v1/users/me/weekly-chart → GET /chart/weekly (JWT auth, reads user from token)
   - name: analytics-chart-weekly-v1
-    url: http://165.22.246.95:80/chart/weekly
+    url: http://165.22.246.95:80/weekly-chart-data
     routes:
       - name: analytics-chart-weekly-route-v1
         paths:
