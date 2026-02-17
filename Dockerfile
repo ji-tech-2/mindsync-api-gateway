@@ -19,6 +19,10 @@ RUN mkdir -p /usr/local/kong/declarative /usr/local/kong/ssl
 
 COPY kong.yml /usr/local/kong/declarative/kong.yml
 
+# JWT Public Key for asymmetric signature verification
+ARG JWT_PUBLIC_KEY
+ENV JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+
 ENV KONG_DATABASE=off
 ENV KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml
 

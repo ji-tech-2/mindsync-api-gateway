@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       version_tag:
-        description: 'Version tag (e.g., v1.0.0)'
+        description: "Version tag (e.g., v1.0.0)"
         required: false
         type: string
 
@@ -33,14 +33,14 @@ jobs:
           # Generate timestamp-based version
           TIMESTAMP=$(date +%Y%m%d-%H%M%S)
           SHORT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          
+
           # Use custom version if provided, otherwise use timestamp
           if [ -n "${{ inputs.version_tag }}" ]; then
             VERSION="${{ inputs.version_tag }}"
           else
             VERSION="${TIMESTAMP}-${SHORT_SHA}"
           fi
-          
+
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "timestamp=${TIMESTAMP}" >> $GITHUB_OUTPUT
           echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
@@ -53,6 +53,8 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:${{ steps.meta.outputs.version }}
+          build-args: |
+            JWT_PUBLIC_KEY=${{ secrets.JWT_PUBLIC_KEY }}
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:latest
           cache-to: type=inline
 

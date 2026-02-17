@@ -2,11 +2,15 @@
 
 Kong API Gateway configuration for routing requests to MindSync microservices (authentication and ML model services).
 
-**🔒 HTTPS-enabled API Gateway running on ports 80/443 with domain `api.mindsync.my`**
+**🔒 HTTPS-enabled API Gateway running on ports 80/443 with domain `api.mindsync.my`**  
+**🔐 JWT Authentication with RS256 asymmetric encryption**
+
+📘 **Setup Guides**: [SSL/HTTPS Configuration](SSL_SETUP.md) | [JWT Authentication Setup](JWT_SETUP.md)
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Authentication & Security](#authentication--security)
 - [Architecture](#architecture)
 - [Services](#services)
 - [API Endpoints](#api-endpoints)
@@ -15,7 +19,9 @@ Kong API Gateway configuration for routing requests to MindSync microservices (a
   - [SSL/HTTPS Configuration](#sslhttps-configuration)
   - [Installation Options](#installation-options)
 - [Plugins](#plugins)
+- [Deployment](#deployment)
 - [SSL Certificate Setup](SSL_SETUP.md) 📘
+- [JWT Authentication Setup](JWT_SETUP.md) 🔐
 
 ## Overview
 
@@ -25,7 +31,50 @@ This API Gateway serves as the single entry point for all MindSync client applic
 - **ML Model Service** (mindsync-model-flask) - Mental health predictions and analytics
 
 **Domain**: `api.mindsync.my`  
-**Protocols**: HTTP (port 80) and HTTPS (port 443)
+**Protocols**: HTTP (port 80) and HTTPS (port 443)  
+**Authentication**: JWT (RS256 asymmetric encryption)
+
+## Authentication & Security
+
+### JWT Authentication
+
+The API Gateway implements JWT (JSON Web Token) authentication using RS256 asymmetric encryption for secure route protection.
+
+**Protected Routes** (require JWT cookie):
+
+- `/v1/auth/logout`
+- `/v1/users/me/*` (profile, change-password, history, streaks, weekly-chart, weekly-factors, daily-suggestions)
+
+**Public Routes** (no JWT required):
+
+- `/v1/auth/register`
+- `/v1/auth/login`
+- `/v1/auth/reset-password`
+- `/v1/auth/request-otp`
+- `/v1/auth/request-signup-otp`
+- `/v1/predictions/create`
+- `/v1/predictions/{predictionId}/result`
+
+**How it works:**
+
+1. User logs in via `/v1/auth/login`
+2. Backend service issues JWT token as HttpOnly cookie named `token`
+3. Client automatically sends cookie with subsequent requests
+4. Kong validates JWT signature using public key from environment variable
+5. Kong checks token expiration
+6. If valid, request is forwarded to backend with `X-Real-IP` header preserved
+7. If invalid or expired, Kong returns `401 Unauthorized`
+
+**JWT Configuration:**
+
+- **Algorithm**: RS256 (RSA with SHA-256)
+- **Public Key Source**: `JWT_PUBLIC_KEY` environment variable
+- **Token Location**: Cookie named `token`
+- **Claim Validation**: `iss` (issuer) claim is validated
+
+### IP Forwarding
+
+Kong preserves the original client IP address in the `X-Real-IP` header for all protected routes, allowing backend services to track and log client locations.
 
 ## Architecture
 
@@ -49,23 +98,23 @@ Auth API   ML Model API
 
 The API Gateway exposes domain-oriented REST API routes organized by semantic resource:
 
-| Domain          | Resource           | Endpoint Pattern                            | Description                                 |
-| --------------- | ------------------ | ------------------------------------------- | ------------------------------------------- |
-| **Auth**        | register           | `POST /v1/auth/register`                    | Create new user account                     |
-| **Auth**        | login              | `POST /v1/auth/login`                       | Authenticate and receive JWT cookie         |
-| **Auth**        | logout             | `POST /v1/auth/logout`                      | Clear authentication cookie                 |
-| **Auth**        | reset password     | `POST /v1/auth/reset-password`              | Reset forgotten password using OTP          |
-| **Auth**        | request OTP        | `POST /v1/auth/request-otp`                 | Request OTP for password reset              |
-| **Auth**        | request signup OTP | `POST /v1/auth/request-signup-otp`          | Request OTP for email verification (signup) |
-| **Users**       | profile            | `GET/PUT /v1/users/me/profile`              | View/update user profile (JWT auth)         |
-| **Users**       | change password    | `POST /v1/users/me/change-password`         | Change password (requires JWT auth)         |
-| **Predictions** | create prediction  | `POST /v1/predictions/create`               | Submit mental health assessment data        |
-| **Predictions** | prediction result  | `GET /v1/predictions/{predictionId}/result` | Retrieve prediction results and analysis    |
-| **Analytics**   | history            | `GET /v1/users/{userId}/history`            | Get user's prediction history               |
-| **Analytics**   | streaks            | `GET /v1/users/{userId}/streaks`            | Get daily/weekly activity streaks           |
-| **Analytics**   | weekly chart       | `GET /v1/users/{userId}/weekly-chart`       | Get weekly wellness metrics chart           |
-| **Analytics**   | weekly factors     | `GET /v1/users/{userId}/weekly-factors`     | Get critical wellness factors for the week  |
-| **Analytics**   | daily suggestions  | `GET /v1/users/{userId}/daily-suggestions`  | Get daily personalized wellness suggestions |
+| Domain          | Resource           | Endpoint Pattern                            | Description                                   |
+| --------------- | ------------------ | ------------------------------------------- | --------------------------------------------- |
+| **Auth**        | register           | `POST /v1/auth/register`                    | Create new user account                       |
+| **Auth**        | login              | `POST /v1/auth/login`                       | Authenticate and receive JWT cookie           |
+| **Auth**        | logout             | `POST /v1/auth/logout`                      | Clear authentication cookie                   |
+| **Auth**        | reset password     | `POST /v1/auth/reset-password`              | Reset forgotten password using OTP            |
+| **Auth**        | request OTP        | `POST /v1/auth/request-otp`                 | Request OTP for password reset                |
+| **Auth**        | request signup OTP | `POST /v1/auth/request-signup-otp`          | Request OTP for email verification (signup)   |
+| **Users**       | profile            | `GET/PUT /v1/users/me/profile`              | View/update user profile (JWT auth)           |
+| **Users**       | change password    | `POST /v1/users/me/change-password`         | Change password (requires JWT auth)           |
+| **Users**       | history            | `GET /v1/users/me/history`                  | Get user's prediction history (JWT auth)      |
+| **Users**       | streaks            | `GET /v1/users/me/streaks`                  | Get daily/weekly activity streaks (JWT auth)  |
+| **Users**       | weekly chart       | `GET /v1/users/me/weekly-chart`             | Get weekly wellness metrics chart (JWT auth)  |
+| **Users**       | weekly factors     | `GET /v1/users/me/weekly-factors`           | Get critical wellness factors (JWT auth)      |
+| **Users**       | daily suggestions  | `GET /v1/users/me/daily-suggestions`        | Get daily personalized suggestions (JWT auth) |
+| **Predictions** | create prediction  | `POST /v1/predictions/create`               | Submit mental health assessment data          |
+| **Predictions** | prediction result  | `GET /v1/predictions/{predictionId}/result` | Retrieve prediction results and analysis      |
 
 ## API Endpoints
 
@@ -324,8 +373,8 @@ Response: 200 OK
 #### Get Prediction History
 
 ```
-GET /v1/users/{userId}/history
-Authorization: Bearer <token>
+GET /v1/users/me/history
+Credentials: include
 
 Response: 200 OK
 {
@@ -347,8 +396,8 @@ Response: 200 OK
 #### Get Activity Streaks
 
 ```
-GET /v1/users/{userId}/streaks
-Authorization: Bearer <token>
+GET /v1/users/me/streaks
+Credentials: include
 
 Response: 200 OK
 {
@@ -370,8 +419,8 @@ Response: 200 OK
 #### Get Weekly Chart Data
 
 ```
-GET /v1/users/{userId}/weekly-chart
-Authorization: Bearer <token>
+GET /v1/users/me/weekly-chart
+Credentials: include
 
 Response: 200 OK
 {
@@ -410,8 +459,8 @@ Response: 200 OK
 #### Get Weekly Critical Factors
 
 ```
-GET /v1/users/{userId}/weekly-factors
-Authorization: Bearer <token>
+GET /v1/users/me/weekly-factors
+Credentials: include
 
 Response: 200 OK
 {
@@ -425,8 +474,8 @@ Response: 200 OK
 #### Get Daily Suggestions
 
 ```
-GET /v1/users/{userId}/daily-suggestions
-Authorization: Bearer <token>
+GET /v1/users/me/daily-suggestions
+Credentials: include
 
 Response: 200 OK
 {
@@ -449,6 +498,9 @@ The gateway is configured using [kong.yml](kong.yml) in declarative format (vers
 - **Format Version**: 3.0
 - **Services**: 14 v1 microservice routes organized by semantic domain + 10 legacy v0-1 routes
 - **Routes**: Domain-oriented API with `/v1/` prefix
+  - Auth domain: 6 routes
+  - Users domain: 7 routes (2 profile + 5 analytics with JWT)
+  - Predictions domain: 2 routes
 - **Plugins**: CORS and file-log enabled globally
 
 ### Environment Variables
@@ -462,7 +514,18 @@ KONG_PROXY_ACCESS_LOG=/dev/stdout
 KONG_ADMIN_ACCESS_LOG=/dev/stdout
 KONG_PROXY_ERROR_LOG=/dev/stderr
 KONG_ADMIN_ERROR_LOG=/dev/stderr
+JWT_PUBLIC_KEY=<your-rsa-public-key>
 ```
+
+**JWT_PUBLIC_KEY** must contain the RSA public key in PEM format for JWT signature verification:
+
+```
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+-----END PUBLIC KEY-----
+```
+
+For CI/CD deployment, this should be stored as a GitHub Secret.
 
 ## Getting Started
 
@@ -473,7 +536,15 @@ KONG_ADMIN_ERROR_LOG=/dev/stderr
   - Authentication service at `http://188.166.233.241:80`
   - ML Model service at `http://165.22.246.95:80`
 - SSL/TLS certificate for `api.mindsync.my` (for HTTPS support)
+- RSA public key for JWT signature verification
 - Domain DNS configured to point to your server
+- GitHub Secrets configured:
+  - `JWT_PUBLIC_KEY` - RSA public key for JWT verification
+  - `DOCKERHUB_USERNAME` - Docker Hub username
+  - `DOCKERHUB_TOKEN` - Docker Hub access token
+  - `DO_HOST` - DigitalOcean droplet host
+  - `DO_USER` - DigitalOcean droplet user
+  - `SSH_PRIVATE_KEY` - SSH private key for deployment
 
 ### SSL/HTTPS Configuration
 
@@ -537,13 +608,14 @@ certificates:
 #### Option 1: Docker (Recommended)
 
 ```bash
-# Build the image
-docker build -t mindsync-gateway .
+# Build the image with JWT public key
+docker build --build-arg JWT_PUBLIC_KEY="$(cat jwt-public-key.pem)" -t mindsync-gateway .
 
-# Run with SSL certificates
+# Run with SSL certificates and JWT authentication
 docker run -d --name kong-gateway \
   -v $(pwd)/ssl/cert.pem:/usr/local/kong/ssl/cert.pem:ro \
   -v $(pwd)/ssl/key.pem:/usr/local/kong/ssl/key.pem:ro \
+  -e "JWT_PUBLIC_KEY=$(cat jwt-public-key.pem)" \
   -p 80:80 \
   -p 443:443 \
   -p 8001:8001 \
@@ -553,6 +625,7 @@ docker run -d --name kong-gateway \
 docker run -d --name kong-gateway \
   -v /etc/letsencrypt/live/api.mindsync.my/fullchain.pem:/usr/local/kong/ssl/cert.pem:ro \
   -v /etc/letsencrypt/live/api.mindsync.my/privkey.pem:/usr/local/kong/ssl/key.pem:ro \
+  -e "JWT_PUBLIC_KEY=$(cat jwt-public-key.pem)" \
   -p 80:80 \
   -p 443:443 \
   -p 8001:8001 \
@@ -568,16 +641,29 @@ version: "3.8"
 
 services:
   kong-gateway:
-    build: .
+    build:
+      context: .
+      args:
+        JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
     container_name: mindsync-api-gateway
     ports:
       - "80:80"
       - "443:443"
       - "8001:8001"
+    environment:
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
     volumes:
       - ./ssl/cert.pem:/usr/local/kong/ssl/cert.pem:ro
       - ./ssl/key.pem:/usr/local/kong/ssl/key.pem:ro
     restart: unless-stopped
+```
+
+Create a `.env` file:
+
+```env
+JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
+-----END PUBLIC KEY-----"
 ```
 
 Then run:
@@ -629,17 +715,15 @@ https://api.mindsync.my/v1/auth/request-signup-otp
 # User profile endpoints
 https://api.mindsync.my/v1/users/me/profile
 https://api.mindsync.my/v1/users/me/change-password
+https://api.mindsync.my/v1/users/me/history
+https://api.mindsync.my/v1/users/me/streaks
+https://api.mindsync.my/v1/users/me/weekly-chart
+https://api.mindsync.my/v1/users/me/weekly-factors
+https://api.mindsync.my/v1/users/me/daily-suggestions
 
 # Prediction endpoints
 https://api.mindsync.my/v1/predictions/create
 https://api.mindsync.my/v1/predictions/{predictionId}/result
-
-# Analytics endpoints
-https://api.mindsync.my/v1/users/{userId}/history
-https://api.mindsync.my/v1/users/{userId}/streaks
-https://api.mindsync.my/v1/users/{userId}/weekly-chart
-https://api.mindsync.my/v1/users/{userId}/weekly-factors
-https://api.mindsync.my/v1/users/{userId}/daily-suggestions
 ```
 
 ## Plugins
@@ -773,15 +857,46 @@ If routes are not found:
    kong reload
    ```
 
+### JWT Authentication Errors (401 Unauthorized)
+
+If receiving 401 errors on protected routes:
+
+1. **Verify JWT cookie is being sent**:
+   - Cookie name must be `token`
+   - Cookie should be HttpOnly
+   - Check browser DevTools > Network > Cookies
+
+2. **Check JWT signature**:
+   - Ensure `JWT_PUBLIC_KEY` environment variable is correctly set
+   - Public key must match the private key used by auth service
+   - Key format must be PEM (including BEGIN/END markers)
+
+3. **Verify token expiration**:
+   - JWT `exp` claim must be in the future
+   - Check server time synchronization
+
+4. **Check issuer claim**:
+   - JWT must have `iss` claim with value `mindsync-issuer`
+
+```bash
+# Decode JWT to inspect claims (use jwt.io or jwt CLI)
+# Example with jwt-cli:
+jwt decode <your-token>
+
+# Test with explicit cookie
+curl -b "token=<your-jwt-token>" https://api.mindsync.my/v1/users/me/profile
+```
+
 ## Deployment
 
 ### Production Considerations
 
-1. **HTTPS**: Configure SSL certificates for secure communication
-2. **Rate Limiting**: Add rate limiting plugin to prevent abuse
-3. **Authentication**: Consider adding API key authentication
+1. **HTTPS**: ✅ Configured with Let's Encrypt SSL certificates
+2. **JWT Authentication**: ✅ Configured with RS256 asymmetric encryption
+3. **Rate Limiting**: Add rate limiting plugin to prevent abuse
 4. **Monitoring**: Set up logging and monitoring solutions
 5. **Load Balancing**: Configure multiple upstream targets for high availability
+6. **IP Forwarding**: ✅ Configured - client IPs preserved in X-Real-IP header
 
 ### Example Production Plugin Configuration
 
@@ -817,18 +932,23 @@ plugins:
 │    - reset-password                │
 │    - request-otp                   │
 │    - request-signup-otp            │
-│  • /v1/users/*                    │
-│    - me/profile                    │
-│    - me/change-password            │
-│  • /v1/predictions/*              │
-│    - create, {id}/result           │
-│  • /v1/users/{id}/*               │
+│  • /v1/users/me/*                 │
+│    - profile                       │
+│    - change-password               │
 │    - history, streaks              │
 │    - weekly-chart, weekly-factors  │
 │    - daily-suggestions             │
+│  • /v1/predictions/*              │
+│    - create, {id}/result           │
+│                                    │
+│  Security:                         │
+│  • JWT Authentication (RS256)      │
+│  • X-Real-IP Header Forwarding     │
 │                                    │
 │  Plugins:                          │
 │  • CORS                            │
+│  • JWT                             │
+│  • Request Transformer             │
 │  • File Log                        │
 └──┬──────────┬──────────────────┬──┘
    │          │                  │
@@ -844,12 +964,22 @@ plugins:
 
 ## Version History
 
+- **v1.1**: JWT Authentication & Security Enhancement
+  - JWT authentication with RS256 asymmetric encryption
+  - Protected routes: logout, all /v1/users/me/\* endpoints
+  - Public routes: register, login, reset-password, request-otp, request-signup-otp, predictions
+  - X-Real-IP header forwarding for client IP preservation
+  - JWT consumer configuration with public key from environment
+  - Cookie-based authentication (token cookie)
+  - Automatic 401 response for invalid/expired tokens
+  - Updated CI/CD workflows with JWT_PUBLIC_KEY secret
+
 - **v1.0**: Domain-oriented API Gateway
-  - Domain-based routing: Auth, Users, Predictions, Analytics
+  - Domain-based routing: Auth, Users, Predictions
   - 6 Auth routes (register, login, logout, reset-password, request-otp, request-signup-otp)
-  - 2 User routes (profile, change-password)
+  - 7 User routes (profile, change-password, history, streaks, weekly-chart, weekly-factors, daily-suggestions)
   - 2 Prediction routes (create, result)
-  - 5 Analytics routes (history, streaks, weekly-chart, weekly-factors, daily-suggestions)
+  - All analytics routes use JWT authentication (/v1/users/me/\*)
   - HTTPS support with SSL/TLS
   - CORS configuration
   - Request logging
