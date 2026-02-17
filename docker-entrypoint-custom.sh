@@ -1,21 +1,14 @@
 #!/bin/sh
 set -e
 
+TEMPLATE="/usr/local/kong/declarative/kong.yml.tpl"
 CONFIG="/usr/local/kong/declarative/kong.yml"
 
-# Substitute the JWT_PUBLIC_KEY placeholder with the actual environment variable.
-# The env var should contain the PEM-formatted RSA public key with literal \n
-# characters representing newlines, e.g.:
-#   JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----\nMIIBI...\n-----END PUBLIC KEY-----"
-#
-# YAML double-quoted strings interpret \n as actual newlines, so the final
-# kong.yml will contain a valid multi-line PEM key after substitution.
-
-if [ -n "$JWT_PUBLIC_KEY" ]; then
-  # Use awk to safely handle special characters in the key (/, +, =)
-  awk -v key="$JWT_PUBLIC_KEY" '{ gsub(/JWT_PUBLIC_KEY_PLACEHOLDER/, key); print }' \
-    "$CONFIG" > "${CONFIG}.tmp" && mv "${CONFIG}.tmp" "$CONFIG"
-fi
+# Use decK to render the kong.yml template, resolving ${{ env "..." }} placeholders.
+# Requires DECK_JWT_PUBLIC_KEY (and any future env vars) to be set at runtime.
+echo "[entrypoint] Rendering kong.yml template with decK..."
+deck file render "$TEMPLATE" -o "$CONFIG"
+echo "[entrypoint] kong.yml rendered successfully."
 
 # Delegate to the original Kong entrypoint
 exec /docker-entrypoint.sh "$@"

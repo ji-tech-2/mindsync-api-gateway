@@ -53,8 +53,6 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:${{ steps.meta.outputs.version }}
-          build-args: |
-            JWT_PUBLIC_KEY=${{ secrets.JWT_PUBLIC_KEY }}
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:latest
           cache-to: type=inline
 
