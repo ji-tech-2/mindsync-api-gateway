@@ -112,78 +112,50 @@ services:
                 uri: "/result/$(uri_captures.prediction_id)"
 
   # ========== ANALYTICS DOMAIN ==========
-  # GET /v1/users/{user_id}/history → GET /history/{user_id} (path param)
+  # GET /v1/users/me/history → GET /history (JWT auth, reads user from token)
   - name: analytics-history-v1
-    url: http://165.22.246.95:80
+    url: http://165.22.246.95:80/history
     routes:
       - name: analytics-history-route-v1
         paths:
-          - ~/v1/users/(?<user_id>[^/]+)/history$
-        strip_path: false
-        plugins:
-          - name: request-transformer
-            config:
-              replace:
-                uri: "/history/$(uri_captures.user_id)"
+          - /v1/users/me/history
+        strip_path: true
 
-  # GET /v1/users/{user_id}/streaks → GET /streak/{user_id} (path param)
+  # GET /v1/users/me/streaks → GET /streak (JWT auth, reads user from token)
   - name: analytics-streaks-v1
-    url: http://165.22.246.95:80
+    url: http://165.22.246.95:80/streak
     routes:
       - name: analytics-streaks-route-v1
         paths:
-          - ~/v1/users/(?<user_id>[^/]+)/streaks$
-        strip_path: false
-        plugins:
-          - name: request-transformer
-            config:
-              replace:
-                uri: "/streak/$(uri_captures.user_id)"
+          - /v1/users/me/streaks
+        strip_path: true
 
-  # GET /v1/users/{user_id}/weekly-chart → GET /chart/weekly?user_id={user_id} (query param)
+  # GET /v1/users/me/weekly-chart → GET /chart/weekly (JWT auth, reads user from token)
   - name: analytics-chart-weekly-v1
     url: http://165.22.246.95:80/chart/weekly
     routes:
       - name: analytics-chart-weekly-route-v1
         paths:
-          - ~/v1/users/(?<user_id>[^/]+)/weekly-chart$
+          - /v1/users/me/weekly-chart
         strip_path: true
-        plugins:
-          - name: request-transformer
-            config:
-              add:
-                querystring:
-                  - "user_id:$(uri_captures.user_id)"
 
-  # GET /v1/users/{user_id}/weekly-factors → GET /weekly-critical-factors?user_id={user_id} (query param)
+  # GET /v1/users/me/weekly-factors → GET /weekly-critical-factors (JWT auth, reads user from token)
   - name: analytics-factors-weekly-v1
     url: http://165.22.246.95:80/weekly-critical-factors
     routes:
       - name: analytics-factors-weekly-route-v1
         paths:
-          - ~/v1/users/(?<user_id>[^/]+)/weekly-factors$
+          - /v1/users/me/weekly-factors
         strip_path: true
-        plugins:
-          - name: request-transformer
-            config:
-              add:
-                querystring:
-                  - "user_id:$(uri_captures.user_id)"
 
-  # GET /v1/users/{user_id}/daily-suggestions → GET /daily-suggestion?user_id={user_id} (query param)
+  # GET /v1/users/me/daily-suggestions → GET /daily-suggestion (JWT auth, reads user from token)
   - name: analytics-suggestions-daily-v1
     url: http://165.22.246.95:80/daily-suggestion
     routes:
       - name: analytics-suggestions-daily-route-v1
         paths:
-          - ~/v1/users/(?<user_id>[^/]+)/daily-suggestions$
+          - /v1/users/me/daily-suggestions
         strip_path: true
-        plugins:
-          - name: request-transformer
-            config:
-              add:
-                querystring:
-                  - "user_id:$(uri_captures.user_id)"
 
   # ============================================================================
   # V0-1 API - Legacy Routes (Maintained for backward compatibility)

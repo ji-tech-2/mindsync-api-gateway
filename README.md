@@ -49,23 +49,23 @@ Auth API   ML Model API
 
 The API Gateway exposes domain-oriented REST API routes organized by semantic resource:
 
-| Domain          | Resource           | Endpoint Pattern                            | Description                                 |
-| --------------- | ------------------ | ------------------------------------------- | ------------------------------------------- |
-| **Auth**        | register           | `POST /v1/auth/register`                    | Create new user account                     |
-| **Auth**        | login              | `POST /v1/auth/login`                       | Authenticate and receive JWT cookie         |
-| **Auth**        | logout             | `POST /v1/auth/logout`                      | Clear authentication cookie                 |
-| **Auth**        | reset password     | `POST /v1/auth/reset-password`              | Reset forgotten password using OTP          |
-| **Auth**        | request OTP        | `POST /v1/auth/request-otp`                 | Request OTP for password reset              |
-| **Auth**        | request signup OTP | `POST /v1/auth/request-signup-otp`          | Request OTP for email verification (signup) |
-| **Users**       | profile            | `GET/PUT /v1/users/me/profile`              | View/update user profile (JWT auth)         |
-| **Users**       | change password    | `POST /v1/users/me/change-password`         | Change password (requires JWT auth)         |
-| **Predictions** | create prediction  | `POST /v1/predictions/create`               | Submit mental health assessment data        |
-| **Predictions** | prediction result  | `GET /v1/predictions/{predictionId}/result` | Retrieve prediction results and analysis    |
-| **Analytics**   | history            | `GET /v1/users/{userId}/history`            | Get user's prediction history               |
-| **Analytics**   | streaks            | `GET /v1/users/{userId}/streaks`            | Get daily/weekly activity streaks           |
-| **Analytics**   | weekly chart       | `GET /v1/users/{userId}/weekly-chart`       | Get weekly wellness metrics chart           |
-| **Analytics**   | weekly factors     | `GET /v1/users/{userId}/weekly-factors`     | Get critical wellness factors for the week  |
-| **Analytics**   | daily suggestions  | `GET /v1/users/{userId}/daily-suggestions`  | Get daily personalized wellness suggestions |
+| Domain          | Resource           | Endpoint Pattern                            | Description                                   |
+| --------------- | ------------------ | ------------------------------------------- | --------------------------------------------- |
+| **Auth**        | register           | `POST /v1/auth/register`                    | Create new user account                       |
+| **Auth**        | login              | `POST /v1/auth/login`                       | Authenticate and receive JWT cookie           |
+| **Auth**        | logout             | `POST /v1/auth/logout`                      | Clear authentication cookie                   |
+| **Auth**        | reset password     | `POST /v1/auth/reset-password`              | Reset forgotten password using OTP            |
+| **Auth**        | request OTP        | `POST /v1/auth/request-otp`                 | Request OTP for password reset                |
+| **Auth**        | request signup OTP | `POST /v1/auth/request-signup-otp`          | Request OTP for email verification (signup)   |
+| **Users**       | profile            | `GET/PUT /v1/users/me/profile`              | View/update user profile (JWT auth)           |
+| **Users**       | change password    | `POST /v1/users/me/change-password`         | Change password (requires JWT auth)           |
+| **Users**       | history            | `GET /v1/users/me/history`                  | Get user's prediction history (JWT auth)      |
+| **Users**       | streaks            | `GET /v1/users/me/streaks`                  | Get daily/weekly activity streaks (JWT auth)  |
+| **Users**       | weekly chart       | `GET /v1/users/me/weekly-chart`             | Get weekly wellness metrics chart (JWT auth)  |
+| **Users**       | weekly factors     | `GET /v1/users/me/weekly-factors`           | Get critical wellness factors (JWT auth)      |
+| **Users**       | daily suggestions  | `GET /v1/users/me/daily-suggestions`        | Get daily personalized suggestions (JWT auth) |
+| **Predictions** | create prediction  | `POST /v1/predictions/create`               | Submit mental health assessment data          |
+| **Predictions** | prediction result  | `GET /v1/predictions/{predictionId}/result` | Retrieve prediction results and analysis      |
 
 ## API Endpoints
 
@@ -324,8 +324,8 @@ Response: 200 OK
 #### Get Prediction History
 
 ```
-GET /v1/users/{userId}/history
-Authorization: Bearer <token>
+GET /v1/users/me/history
+Credentials: include
 
 Response: 200 OK
 {
@@ -347,8 +347,8 @@ Response: 200 OK
 #### Get Activity Streaks
 
 ```
-GET /v1/users/{userId}/streaks
-Authorization: Bearer <token>
+GET /v1/users/me/streaks
+Credentials: include
 
 Response: 200 OK
 {
@@ -370,8 +370,8 @@ Response: 200 OK
 #### Get Weekly Chart Data
 
 ```
-GET /v1/users/{userId}/weekly-chart
-Authorization: Bearer <token>
+GET /v1/users/me/weekly-chart
+Credentials: include
 
 Response: 200 OK
 {
@@ -410,8 +410,8 @@ Response: 200 OK
 #### Get Weekly Critical Factors
 
 ```
-GET /v1/users/{userId}/weekly-factors
-Authorization: Bearer <token>
+GET /v1/users/me/weekly-factors
+Credentials: include
 
 Response: 200 OK
 {
@@ -425,8 +425,8 @@ Response: 200 OK
 #### Get Daily Suggestions
 
 ```
-GET /v1/users/{userId}/daily-suggestions
-Authorization: Bearer <token>
+GET /v1/users/me/daily-suggestions
+Credentials: include
 
 Response: 200 OK
 {
@@ -449,6 +449,9 @@ The gateway is configured using [kong.yml](kong.yml) in declarative format (vers
 - **Format Version**: 3.0
 - **Services**: 14 v1 microservice routes organized by semantic domain + 10 legacy v0-1 routes
 - **Routes**: Domain-oriented API with `/v1/` prefix
+  - Auth domain: 6 routes
+  - Users domain: 7 routes (2 profile + 5 analytics with JWT)
+  - Predictions domain: 2 routes
 - **Plugins**: CORS and file-log enabled globally
 
 ### Environment Variables
@@ -629,17 +632,15 @@ https://api.mindsync.my/v1/auth/request-signup-otp
 # User profile endpoints
 https://api.mindsync.my/v1/users/me/profile
 https://api.mindsync.my/v1/users/me/change-password
+https://api.mindsync.my/v1/users/me/history
+https://api.mindsync.my/v1/users/me/streaks
+https://api.mindsync.my/v1/users/me/weekly-chart
+https://api.mindsync.my/v1/users/me/weekly-factors
+https://api.mindsync.my/v1/users/me/daily-suggestions
 
 # Prediction endpoints
 https://api.mindsync.my/v1/predictions/create
 https://api.mindsync.my/v1/predictions/{predictionId}/result
-
-# Analytics endpoints
-https://api.mindsync.my/v1/users/{userId}/history
-https://api.mindsync.my/v1/users/{userId}/streaks
-https://api.mindsync.my/v1/users/{userId}/weekly-chart
-https://api.mindsync.my/v1/users/{userId}/weekly-factors
-https://api.mindsync.my/v1/users/{userId}/daily-suggestions
 ```
 
 ## Plugins
@@ -817,15 +818,14 @@ plugins:
 │    - reset-password                │
 │    - request-otp                   │
 │    - request-signup-otp            │
-│  • /v1/users/*                    │
-│    - me/profile                    │
-│    - me/change-password            │
-│  • /v1/predictions/*              │
-│    - create, {id}/result           │
-│  • /v1/users/{id}/*               │
+│  • /v1/users/me/*                 │
+│    - profile                       │
+│    - change-password               │
 │    - history, streaks              │
 │    - weekly-chart, weekly-factors  │
 │    - daily-suggestions             │
+│  • /v1/predictions/*              │
+│    - create, {id}/result           │
 │                                    │
 │  Plugins:                          │
 │  • CORS                            │
@@ -845,11 +845,11 @@ plugins:
 ## Version History
 
 - **v1.0**: Domain-oriented API Gateway
-  - Domain-based routing: Auth, Users, Predictions, Analytics
+  - Domain-based routing: Auth, Users, Predictions
   - 6 Auth routes (register, login, logout, reset-password, request-otp, request-signup-otp)
-  - 2 User routes (profile, change-password)
+  - 7 User routes (profile, change-password, history, streaks, weekly-chart, weekly-factors, daily-suggestions)
   - 2 Prediction routes (create, result)
-  - 5 Analytics routes (history, streaks, weekly-chart, weekly-factors, daily-suggestions)
+  - All analytics routes use JWT authentication (/v1/users/me/\*)
   - HTTPS support with SSL/TLS
   - CORS configuration
   - Request logging
