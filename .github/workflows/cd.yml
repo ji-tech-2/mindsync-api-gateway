@@ -49,21 +49,29 @@ jobs:
             docker stop kong || true
             docker rm kong || true
 
+            # Write the JWT public key to a temp file to avoid shell-quoting issues
+            # with multi-line PEM values in docker run -e
+            KEY_FILE=$(mktemp)
+            printf '%s' "$DECK_JWT_PUBLIC_KEY" > "$KEY_FILE"
+
             echo "[INFO] Starting updated Kong container with HTTPS and JWT support..."
             docker run -d --name kong \
               -p 80:80 -p 443:443 \
               -p 8001:8001 \
               -v /etc/letsencrypt/live/api.mindsync.my/fullchain.pem:/usr/local/kong/ssl/cert.pem:ro \
               -v /etc/letsencrypt/live/api.mindsync.my/privkey.pem:/usr/local/kong/ssl/key.pem:ro \
+              -v "$KEY_FILE":/run/secrets/jwt_public_key:ro \
               -e KONG_DATABASE=off \
               -e KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml \
               -e KONG_PROXY_LISTEN="0.0.0.0:80, 0.0.0.0:443 ssl" \
               -e KONG_ADMIN_LISTEN="0.0.0.0:8001" \
               -e KONG_SSL_CERT=/usr/local/kong/ssl/cert.pem \
               -e KONG_SSL_CERT_KEY=/usr/local/kong/ssl/key.pem \
-              -e "DECK_JWT_PUBLIC_KEY=${DECK_JWT_PUBLIC_KEY}" \
               --restart always \
               ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:${{ steps.image.outputs.tag }}
+
+            # Clean up temp key file from host
+            rm -f "$KEY_FILE"
 
             echo "[INFO] Verifying deployment..."
             sleep 5
