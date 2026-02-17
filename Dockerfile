@@ -19,6 +19,10 @@ RUN mkdir -p /usr/local/kong/declarative /usr/local/kong/ssl
 
 COPY kong.yml /usr/local/kong/declarative/kong.yml
 
+# Custom entrypoint to inject JWT_PUBLIC_KEY into kong.yml at runtime
+COPY docker-entrypoint-custom.sh /docker-entrypoint-custom.sh
+RUN chmod +x /docker-entrypoint-custom.sh
+
 # JWT Public Key for asymmetric signature verification
 ARG JWT_PUBLIC_KEY
 ENV JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
@@ -32,6 +36,9 @@ ENV KONG_PROXY_ERROR_LOG=/dev/stderr
 ENV KONG_ADMIN_ERROR_LOG=/dev/stderr
 
 EXPOSE 80 443 8001
+
+ENTRYPOINT ["/docker-entrypoint-custom.sh"]
+CMD ["kong", "docker-start"]
 
 HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
   CMD curl -fs http://localhost:8001/status || exit 1
