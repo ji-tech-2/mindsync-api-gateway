@@ -4,7 +4,8 @@ _format_version: "3.0"
 # JWT Consumer Configuration
 # ============================================================================
 # Consumer for JWT verification using asymmetric encryption (RS256)
-# Public key is loaded from environment variable JWT_PUBLIC_KEY
+# Public key is injected at container startup from JWT_PUBLIC_KEY env var
+# via the custom entrypoint script (docker-entrypoint-custom.sh).
 # ============================================================================
 
 consumers:
@@ -12,7 +13,7 @@ consumers:
     jwt_secrets:
       - key: mindsync-issuer
         algorithm: RS256
-        rsa_public_key: "{{ env.JWT_PUBLIC_KEY }}"
+        rsa_public_key: "JWT_PUBLIC_KEY_PLACEHOLDER"
 
 # ============================================================================
 # v1 API - Domain-Oriented Routes (Semantic Clarity for Users)
