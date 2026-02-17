@@ -1,19 +1,11 @@
 _format_version: "3.0"
 
-# ============================================================================
-# JWT Consumer Configuration
-# ============================================================================
-# Consumer for JWT verification using asymmetric encryption (RS256)
-# Public key is injected at runtime via decK environment variable interpolation.
-# Set the DECK_JWT_PUBLIC_KEY env var with the PEM-formatted RSA public key.
-# ============================================================================
-
-consumers:
-  - username: mindsync-jwt-consumer
-    jwt_secrets:
-      - key: mindsync-issuer
-        algorithm: RS256
-        rsa_public_key: ${{ env "DECK_JWT_PUBLIC_KEY" }}
+plugins:
+  - name: request-transformer
+    config:
+      add:
+        headers:
+          - "X-Real-IP:$(headers['X-Forwarded-For'])"
 
 # ============================================================================
 # v1 API - Domain-Oriented Routes (Semantic Clarity for Users)
@@ -47,7 +39,7 @@ services:
           - /v1/auth/login
         strip_path: true
 
-  # POST /v1/auth/logout → POST /logout (JWT protected)
+  # POST /v1/auth/logout → POST /logout
   - name: auth-logout-v1
     url: http://188.166.233.241:80/logout
     routes:
@@ -55,18 +47,6 @@ services:
         paths:
           - /v1/auth/logout
         strip_path: true
-        plugins:
-          - name: jwt
-            config:
-              key_claim_name: sub
-              secret_is_base64: false
-              cookie_names:
-                - jwt
-          - name: request-transformer
-            config:
-              add:
-                headers:
-                  - "X-Real-IP:$(headers['X-Forwarded-For'])"
 
   # POST /v1/auth/reset-password → POST /profile/reset-password (body: {email, otp, newPassword})
   - name: auth-reset-password-v1
@@ -104,18 +84,6 @@ services:
         paths:
           - /v1/users/me/profile
         strip_path: true
-        plugins:
-          - name: jwt
-            config:
-              key_claim_name: sub
-              secret_is_base64: false
-              cookie_names:
-                - jwt
-          - name: request-transformer
-            config:
-              add:
-                headers:
-                  - "X-Real-IP:$(headers['X-Forwarded-For'])"
 
   # POST /v1/users/me/change-password → POST /profile/change-password (JWT auth, body: {oldPassword, newPassword})
   - name: user-change-password-v1
@@ -125,18 +93,6 @@ services:
         paths:
           - /v1/users/me/change-password
         strip_path: true
-        plugins:
-          - name: jwt
-            config:
-              key_claim_name: sub
-              secret_is_base64: false
-              cookie_names:
-                - jwt
-          - name: request-transformer
-            config:
-              add:
-                headers:
-                  - "X-Real-IP:$(headers['X-Forwarded-For'])"
 
   # ========== PREDICTIONS DOMAIN ==========
   # POST /v1/predictions → POST /predict
@@ -171,18 +127,6 @@ services:
         paths:
           - /v1/users/me/history
         strip_path: true
-        plugins:
-          - name: jwt
-            config:
-              key_claim_name: sub
-              secret_is_base64: false
-              cookie_names:
-                - jwt
-          - name: request-transformer
-            config:
-              add:
-                headers:
-                  - "X-Real-IP:$(headers['X-Forwarded-For'])"
 
   # GET /v1/users/me/streaks → GET /streak (JWT auth, reads user from token)
   - name: analytics-streaks-v1
@@ -192,18 +136,6 @@ services:
         paths:
           - /v1/users/me/streaks
         strip_path: true
-        plugins:
-          - name: jwt
-            config:
-              key_claim_name: sub
-              secret_is_base64: false
-              cookie_names:
-                - jwt
-          - name: request-transformer
-            config:
-              add:
-                headers:
-                  - "X-Real-IP:$(headers['X-Forwarded-For'])"
 
   # GET /v1/users/me/weekly-chart → GET /chart/weekly (JWT auth, reads user from token)
   - name: analytics-chart-weekly-v1
@@ -213,18 +145,6 @@ services:
         paths:
           - /v1/users/me/weekly-chart
         strip_path: true
-        plugins:
-          - name: jwt
-            config:
-              key_claim_name: sub
-              secret_is_base64: false
-              cookie_names:
-                - jwt
-          - name: request-transformer
-            config:
-              add:
-                headers:
-                  - "X-Real-IP:$(headers['X-Forwarded-For'])"
 
   # GET /v1/users/me/weekly-factors → GET /weekly-critical-factors (JWT auth, reads user from token)
   - name: analytics-factors-weekly-v1
@@ -234,18 +154,6 @@ services:
         paths:
           - /v1/users/me/weekly-factors
         strip_path: true
-        plugins:
-          - name: jwt
-            config:
-              key_claim_name: sub
-              secret_is_base64: false
-              cookie_names:
-                - jwt
-          - name: request-transformer
-            config:
-              add:
-                headers:
-                  - "X-Real-IP:$(headers['X-Forwarded-For'])"
 
   # GET /v1/users/me/daily-suggestions → GET /daily-suggestion (JWT auth, reads user from token)
   - name: analytics-suggestions-daily-v1
@@ -255,18 +163,6 @@ services:
         paths:
           - /v1/users/me/daily-suggestions
         strip_path: true
-        plugins:
-          - name: jwt
-            config:
-              key_claim_name: sub
-              secret_is_base64: false
-              cookie_names:
-                - jwt
-          - name: request-transformer
-            config:
-              add:
-                headers:
-                  - "X-Real-IP:$(headers['X-Forwarded-For'])"
 
   # ============================================================================
   # V0-1 API - Legacy Routes (Maintained for backward compatibility)
