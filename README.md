@@ -2,15 +2,11 @@
 
 Kong API Gateway configuration for routing requests to MindSync microservices (authentication and ML model services).
 
-**🔒 HTTPS-enabled API Gateway running on ports 80/443 with domain `api.mindsync.my`**  
-**🔐 JWT Authentication with RS256 asymmetric encryption**
-
-📘 **Setup Guides**: [SSL/HTTPS Configuration](SSL_SETUP.md) | [JWT Authentication Setup](JWT_SETUP.md)
+**🔒 HTTPS-enabled API Gateway running on ports 80/443 with domain `api.mindsync.my`**
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Authentication & Security](#authentication--security)
 - [Architecture](#architecture)
 - [Services](#services)
 - [API Endpoints](#api-endpoints)
@@ -19,9 +15,7 @@ Kong API Gateway configuration for routing requests to MindSync microservices (a
   - [SSL/HTTPS Configuration](#sslhttps-configuration)
   - [Installation Options](#installation-options)
 - [Plugins](#plugins)
-- [Deployment](#deployment)
 - [SSL Certificate Setup](SSL_SETUP.md) 📘
-- [JWT Authentication Setup](JWT_SETUP.md) 🔐
 
 ## Overview
 
@@ -31,50 +25,7 @@ This API Gateway serves as the single entry point for all MindSync client applic
 - **ML Model Service** (mindsync-model-flask) - Mental health predictions and analytics
 
 **Domain**: `api.mindsync.my`  
-**Protocols**: HTTP (port 80) and HTTPS (port 443)  
-**Authentication**: JWT (RS256 asymmetric encryption)
-
-## Authentication & Security
-
-### JWT Authentication
-
-The API Gateway implements JWT (JSON Web Token) authentication using RS256 asymmetric encryption for secure route protection.
-
-**Protected Routes** (require JWT cookie):
-
-- `/v1/auth/logout`
-- `/v1/users/me/*` (profile, change-password, history, streaks, weekly-chart, weekly-factors, daily-suggestions)
-
-**Public Routes** (no JWT required):
-
-- `/v1/auth/register`
-- `/v1/auth/login`
-- `/v1/auth/reset-password`
-- `/v1/auth/request-otp`
-- `/v1/auth/request-signup-otp`
-- `/v1/predictions/create`
-- `/v1/predictions/{predictionId}/result`
-
-**How it works:**
-
-1. User logs in via `/v1/auth/login`
-2. Backend service issues JWT token as HttpOnly cookie named `token`
-3. Client automatically sends cookie with subsequent requests
-4. Kong validates JWT signature using public key from environment variable
-5. Kong checks token expiration
-6. If valid, request is forwarded to backend with `X-Real-IP` header preserved
-7. If invalid or expired, Kong returns `401 Unauthorized`
-
-**JWT Configuration:**
-
-- **Algorithm**: RS256 (RSA with SHA-256)
-- **Public Key Source**: `DECK_JWT_PUBLIC_KEY` environment variable (resolved by decK at container startup)
-- **Token Location**: Cookie named `token`
-- **Claim Validation**: `iss` (issuer) claim is validated
-
-### IP Forwarding
-
-Kong preserves the original client IP address in the `X-Real-IP` header for all protected routes, allowing backend services to track and log client locations.
+**Protocols**: HTTP (port 80) and HTTPS (port 443)
 
 ## Architecture
 
@@ -514,20 +465,7 @@ KONG_PROXY_ACCESS_LOG=/dev/stdout
 KONG_ADMIN_ACCESS_LOG=/dev/stdout
 KONG_PROXY_ERROR_LOG=/dev/stderr
 KONG_ADMIN_ERROR_LOG=/dev/stderr
-DECK_JWT_PUBLIC_KEY=<your-rsa-public-key>
 ```
-
-**DECK_JWT_PUBLIC_KEY** must contain the RSA public key in PEM format for JWT signature verification.
-The `kong.yml` template uses decK's `${{ env "DECK_JWT_PUBLIC_KEY" }}` syntax, which is resolved
-at container startup before Kong loads the config:
-
-```
------BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
------END PUBLIC KEY-----
-```
-
-For CI/CD deployment, this should be stored as a GitHub Secret.
 
 ## Getting Started
 
@@ -538,15 +476,7 @@ For CI/CD deployment, this should be stored as a GitHub Secret.
   - Authentication service at `http://188.166.233.241:80`
   - ML Model service at `http://165.22.246.95:80`
 - SSL/TLS certificate for `api.mindsync.my` (for HTTPS support)
-- RSA public key for JWT signature verification
 - Domain DNS configured to point to your server
-- GitHub Secrets configured:
-  - `JWT_PUBLIC_KEY` - RSA public key for JWT verification (passed as `DECK_JWT_PUBLIC_KEY` at runtime)
-  - `DOCKERHUB_USERNAME` - Docker Hub username
-  - `DOCKERHUB_TOKEN` - Docker Hub access token
-  - `DO_HOST` - DigitalOcean droplet host
-  - `DO_USER` - DigitalOcean droplet user
-  - `SSH_PRIVATE_KEY` - SSH private key for deployment
 
 ### SSL/HTTPS Configuration
 
@@ -610,15 +540,13 @@ certificates:
 #### Option 1: Docker (Recommended)
 
 ```bash
-# Build the image (no secrets needed at build time)
+# Build the image
 docker build -t mindsync-gateway .
 
-# Run with SSL certificates and JWT authentication
-# The DECK_JWT_PUBLIC_KEY env var is resolved by decK at container startup
+# Run with SSL certificates
 docker run -d --name kong-gateway \
   -v $(pwd)/ssl/cert.pem:/usr/local/kong/ssl/cert.pem:ro \
   -v $(pwd)/ssl/key.pem:/usr/local/kong/ssl/key.pem:ro \
-  -e "DECK_JWT_PUBLIC_KEY=$(cat jwt-public-key.pem)" \
   -p 80:80 \
   -p 443:443 \
   -p 8001:8001 \
@@ -628,7 +556,6 @@ docker run -d --name kong-gateway \
 docker run -d --name kong-gateway \
   -v /etc/letsencrypt/live/api.mindsync.my/fullchain.pem:/usr/local/kong/ssl/cert.pem:ro \
   -v /etc/letsencrypt/live/api.mindsync.my/privkey.pem:/usr/local/kong/ssl/key.pem:ro \
-  -e "DECK_JWT_PUBLIC_KEY=$(cat jwt-public-key.pem)" \
   -p 80:80 \
   -p 443:443 \
   -p 8001:8001 \
@@ -644,27 +571,16 @@ version: "3.8"
 
 services:
   kong-gateway:
-    build:
-      context: .
+    build: .
     container_name: mindsync-api-gateway
     ports:
       - "80:80"
       - "443:443"
       - "8001:8001"
-    environment:
-      - DECK_JWT_PUBLIC_KEY=${DECK_JWT_PUBLIC_KEY}
     volumes:
       - ./ssl/cert.pem:/usr/local/kong/ssl/cert.pem:ro
       - ./ssl/key.pem:/usr/local/kong/ssl/key.pem:ro
     restart: unless-stopped
-```
-
-Create a `.env` file:
-
-```env
-DECK_JWT_PUBLIC_KEY="-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...
------END PUBLIC KEY-----"
 ```
 
 Then run:
@@ -858,51 +774,15 @@ If routes are not found:
    kong reload
    ```
 
-### JWT Authentication Errors (401 Unauthorized)
-
-If receiving 401 errors on protected routes:
-
-1. **Verify JWT cookie is being sent**:
-   - Cookie name must be `token`
-   - Cookie should be HttpOnly
-   - Check browser DevTools > Network > Cookies
-
-2. **Check JWT signature**:
-   - Ensure `JWT_PUBLIC_KEY` environment variable is correctly set
-   - Public key must match the private key used by auth service
-   - Key format must be PEM (including BEGIN/END markers)
-
-3. **Verify DECK_JWT_PUBLIC_KEY env var**:
-   - Must be set at `docker run` time (not build time)
-   - Key must include `-----BEGIN PUBLIC KEY-----` / `-----END PUBLIC KEY-----` markers
-   - Check container logs for "kong.yml rendered successfully" message
-
-4. **Verify token expiration**:
-   - JWT `exp` claim must be in the future
-   - Check server time synchronization
-
-5. **Check issuer claim**:
-   - JWT must have `iss` claim with value `mindsync-issuer`
-
-```bash
-# Decode JWT to inspect claims (use jwt.io or jwt CLI)
-# Example with jwt-cli:
-jwt decode <your-token>
-
-# Test with explicit cookie
-curl -b "token=<your-jwt-token>" https://api.mindsync.my/v1/users/me/profile
-```
-
 ## Deployment
 
 ### Production Considerations
 
-1. **HTTPS**: ✅ Configured with Let's Encrypt SSL certificates
-2. **JWT Authentication**: ✅ Configured with RS256 asymmetric encryption
-3. **Rate Limiting**: Add rate limiting plugin to prevent abuse
+1. **HTTPS**: Configure SSL certificates for secure communication
+2. **Rate Limiting**: Add rate limiting plugin to prevent abuse
+3. **Authentication**: Consider adding API key authentication
 4. **Monitoring**: Set up logging and monitoring solutions
 5. **Load Balancing**: Configure multiple upstream targets for high availability
-6. **IP Forwarding**: ✅ Configured - client IPs preserved in X-Real-IP header
 
 ### Example Production Plugin Configuration
 
@@ -947,14 +827,8 @@ plugins:
 │  • /v1/predictions/*              │
 │    - create, {id}/result           │
 │                                    │
-│  Security:                         │
-│  • JWT Authentication (RS256)      │
-│  • X-Real-IP Header Forwarding     │
-│                                    │
 │  Plugins:                          │
 │  • CORS                            │
-│  • JWT                             │
-│  • Request Transformer             │
 │  • File Log                        │
 └──┬──────────┬──────────────────┬──┘
    │          │                  │
@@ -969,22 +843,6 @@ plugins:
 ```
 
 ## Version History
-
-- **v1.2**: decK-based Configuration Rendering
-  - Replaced custom entrypoint env-var substitution with decK `file render`
-  - `kong.yml` uses `${{ env "DECK_JWT_PUBLIC_KEY" }}` for native env var interpolation
-  - Docker image is now environment-agnostic (no secrets baked at build time)
-  - Simplified CI/CD: build-args removed from artifact workflow
-
-- **v1.1**: JWT Authentication & Security Enhancement
-  - JWT authentication with RS256 asymmetric encryption
-  - Protected routes: logout, all /v1/users/me/\* endpoints
-  - Public routes: register, login, reset-password, request-otp, request-signup-otp, predictions
-  - X-Real-IP header forwarding for client IP preservation
-  - JWT consumer configuration with public key from environment
-  - Cookie-based authentication (token cookie)
-  - Automatic 401 response for invalid/expired tokens
-  - Updated CI/CD workflows with JWT_PUBLIC_KEY secret
 
 - **v1.0**: Domain-oriented API Gateway
   - Domain-based routing: Auth, Users, Predictions

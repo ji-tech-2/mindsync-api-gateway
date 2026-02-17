@@ -95,32 +95,6 @@ class TestKongConfig(unittest.TestCase):
                         f"Route path '{path}' in service '{service['name']}' does not start with '/' or '~'"
                     )
 
-    def test_jwt_consumer_configured(self):
-        """Test that a JWT consumer is defined with RS256 algorithm."""
-        self.assertIn('consumers', self.config)
-        consumers = self.config['consumers']
-        self.assertIsInstance(consumers, list)
-        self.assertGreater(len(consumers), 0)
-
-        jwt_consumer = consumers[0]
-        self.assertIn('username', jwt_consumer)
-        self.assertIn('jwt_secrets', jwt_consumer)
-        self.assertIsInstance(jwt_consumer['jwt_secrets'], list)
-        self.assertGreater(len(jwt_consumer['jwt_secrets']), 0)
-
-        jwt_secret = jwt_consumer['jwt_secrets'][0]
-        self.assertEqual(jwt_secret['algorithm'], 'RS256')
-        self.assertIn('key', jwt_secret)
-        self.assertIn('rsa_public_key', jwt_secret)
-
-    def test_deck_env_template_syntax(self):
-        """Test that the kong.yml uses decK environment variable syntax for the RSA public key."""
-        config_path = os.path.join(os.path.dirname(__file__), '..', 'kong.yml')
-        with open(config_path, 'r') as f:
-            raw = f.read()
-        self.assertIn('${{ env "DECK_JWT_PUBLIC_KEY" }}', raw,
-                       "kong.yml must use decK template syntax for JWT public key")
-
 
 if __name__ == '__main__':
     unittest.main()

@@ -33,13 +33,10 @@ jobs:
 
       - name: Deploy to DigitalOcean via SSH
         uses: appleboy/ssh-action@v1.2.2
-        env:
-          DECK_JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: DECK_JWT_PUBLIC_KEY
           script: |
             set -e
             echo "[INFO] Pulling Kong image with tag: ${{ steps.image.outputs.tag }}"
@@ -49,18 +46,12 @@ jobs:
             docker stop kong || true
             docker rm kong || true
 
-            # Write the JWT public key to a temp file to avoid shell-quoting issues
-            # with multi-line PEM values in docker run -e
-            KEY_FILE=$(mktemp)
-            printf '%s' "$DECK_JWT_PUBLIC_KEY" > "$KEY_FILE"
-
-            echo "[INFO] Starting updated Kong container with HTTPS and JWT support..."
+            echo "[INFO] Starting updated Kong container with HTTPS support..."
             docker run -d --name kong \
               -p 80:80 -p 443:443 \
               -p 8001:8001 \
               -v /etc/letsencrypt/live/api.mindsync.my/fullchain.pem:/usr/local/kong/ssl/cert.pem:ro \
               -v /etc/letsencrypt/live/api.mindsync.my/privkey.pem:/usr/local/kong/ssl/key.pem:ro \
-              -v "$KEY_FILE":/run/secrets/jwt_public_key:ro \
               -e KONG_DATABASE=off \
               -e KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml \
               -e KONG_PROXY_LISTEN="0.0.0.0:80, 0.0.0.0:443 ssl" \
@@ -69,9 +60,6 @@ jobs:
               -e KONG_SSL_CERT_KEY=/usr/local/kong/ssl/key.pem \
               --restart always \
               ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:${{ steps.image.outputs.tag }}
-
-            # Clean up temp key file from host
-            rm -f "$KEY_FILE"
 
             echo "[INFO] Verifying deployment..."
             sleep 5
@@ -95,7 +83,6 @@ jobs:
           echo "### Configuration:" >> $GITHUB_STEP_SUMMARY
           echo "- Domain: api.mindsync.my" >> $GITHUB_STEP_SUMMARY
           echo "- SSL/TLS: Let's Encrypt (fullchain.pem + privkey.pem)" >> $GITHUB_STEP_SUMMARY
-          echo "- JWT Authentication: Enabled (RS256)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Exposed Ports:" >> $GITHUB_STEP_SUMMARY
           echo "- HTTP: 80" >> $GITHUB_STEP_SUMMARY
