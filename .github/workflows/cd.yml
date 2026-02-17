@@ -33,10 +33,13 @@ jobs:
 
       - name: Deploy to DigitalOcean via SSH
         uses: appleboy/ssh-action@v1.2.2
+        env:
+          JWT_PUBLIC_KEY: ${{ secrets.JWT_PUBLIC_KEY }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: JWT_PUBLIC_KEY
           script: |
             set -e
             echo "[INFO] Pulling Kong image with tag: ${{ steps.image.outputs.tag }}"
@@ -46,7 +49,7 @@ jobs:
             docker stop kong || true
             docker rm kong || true
 
-            echo "[INFO] Starting updated Kong container with HTTPS support..."
+            echo "[INFO] Starting updated Kong container with HTTPS and JWT support..."
             docker run -d --name kong \
               -p 80:80 -p 443:443 \
               -p 8001:8001 \
@@ -58,6 +61,7 @@ jobs:
               -e KONG_ADMIN_LISTEN="0.0.0.0:8001" \
               -e KONG_SSL_CERT=/usr/local/kong/ssl/cert.pem \
               -e KONG_SSL_CERT_KEY=/usr/local/kong/ssl/key.pem \
+              -e "JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}" \
               --restart always \
               ${{ secrets.DOCKERHUB_USERNAME }}/kong-gateway:${{ steps.image.outputs.tag }}
 
@@ -83,6 +87,7 @@ jobs:
           echo "### Configuration:" >> $GITHUB_STEP_SUMMARY
           echo "- Domain: api.mindsync.my" >> $GITHUB_STEP_SUMMARY
           echo "- SSL/TLS: Let's Encrypt (fullchain.pem + privkey.pem)" >> $GITHUB_STEP_SUMMARY
+          echo "- JWT Authentication: Enabled (RS256)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Exposed Ports:" >> $GITHUB_STEP_SUMMARY
           echo "- HTTP: 80" >> $GITHUB_STEP_SUMMARY
