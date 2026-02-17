@@ -20,8 +20,7 @@ RUN mkdir -p /usr/local/kong/declarative /usr/local/kong/ssl
 COPY kong.yml /usr/local/kong/declarative/kong.yml
 
 # Custom entrypoint to inject JWT_PUBLIC_KEY into kong.yml at runtime
-COPY docker-entrypoint-custom.sh /docker-entrypoint-custom.sh
-RUN chmod +x /docker-entrypoint-custom.sh
+COPY --chmod=755 docker-entrypoint-custom.sh /docker-entrypoint-custom.sh
 
 # JWT Public Key for asymmetric signature verification
 ARG JWT_PUBLIC_KEY
