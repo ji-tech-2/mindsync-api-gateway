@@ -66,6 +66,15 @@ services:
           - /v1/auth/request-otp
         strip_path: true
 
+  # POST /v1/auth/verify-otp → POST /profile/verify-otp (body: {email, otp})
+  - name: auth-verify-otp-v1
+    url: http://188.166.233.241:80/profile/verify-otp
+    routes:
+      - name: auth-verify-otp-route-v1
+        paths:
+          - /v1/auth/verify-otp
+        strip_path: true
+
   # POST /v1/auth/request-otp → POST /profile/request-otp (body: {email})
   - name: auth-request-signup-otp-v1
     url: http://188.166.233.241:80/profile/request-signup-otp
