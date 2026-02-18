@@ -56,6 +56,7 @@ The API Gateway exposes domain-oriented REST API routes organized by semantic re
 | **Auth**        | logout             | `POST /v1/auth/logout`                      | Clear authentication cookie                   |
 | **Auth**        | reset password     | `POST /v1/auth/reset-password`              | Reset forgotten password using OTP            |
 | **Auth**        | request OTP        | `POST /v1/auth/request-otp`                 | Request OTP for password reset                |
+| **Auth**        | verify OTP         | `POST /v1/auth/verify-otp`                  | Verify OTP for password reset                 |
 | **Auth**        | request signup OTP | `POST /v1/auth/request-signup-otp`          | Request OTP for email verification (signup)   |
 | **Users**       | profile            | `GET/PUT /v1/users/me/profile`              | View/update user profile (JWT auth)           |
 | **Users**       | change password    | `POST /v1/users/me/change-password`         | Change password (requires JWT auth)           |
@@ -171,6 +172,24 @@ Response: 200 OK
 ```
 
 Note: This endpoint is for requesting an OTP for password reset. No authentication required.
+
+#### Verify OTP (Password Reset)
+
+```
+POST /v1/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "otp": "123456"
+}
+
+Response: 200 OK
+{
+  "success": true,
+  "message": "OTP verified successfully"
+}
+```
 
 #### Reset Password (Forgotten Password)
 
