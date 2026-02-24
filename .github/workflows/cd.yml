@@ -49,13 +49,13 @@ jobs:
             echo "[INFO] Starting updated Kong container with HTTPS support..."
             docker run -d --name kong \
               -p 80:80 -p 443:443 \
-              -p 8001:8001 \
               -v /etc/letsencrypt/live/api.mindsync.my/fullchain.pem:/usr/local/kong/ssl/cert.pem:ro \
               -v /etc/letsencrypt/live/api.mindsync.my/privkey.pem:/usr/local/kong/ssl/key.pem:ro \
               -e KONG_DATABASE=off \
               -e KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml \
               -e KONG_PROXY_LISTEN="0.0.0.0:80, 0.0.0.0:443 ssl" \
-              -e KONG_ADMIN_LISTEN="0.0.0.0:8001" \
+              -e KONG_ADMIN_LISTEN=off \
+              -e KONG_STATUS_LISTEN=0.0.0.0:8100 \
               -e KONG_SSL_CERT=/usr/local/kong/ssl/cert.pem \
               -e KONG_SSL_CERT_KEY=/usr/local/kong/ssl/key.pem \
               --restart always \
@@ -87,7 +87,8 @@ jobs:
           echo "### Exposed Ports:" >> $GITHUB_STEP_SUMMARY
           echo "- HTTP: 80" >> $GITHUB_STEP_SUMMARY
           echo "- HTTPS: 443 (SSL/TLS)" >> $GITHUB_STEP_SUMMARY
-          echo "- Admin API: 8001 (HTTP)" >> $GITHUB_STEP_SUMMARY
+          echo "- Admin API: disabled" >> $GITHUB_STEP_SUMMARY
+          echo "- Status API: 8100 (internal healthcheck only)" >> $GITHUB_STEP_SUMMARY
 
       - name: Deployment failure notification
         if: failure()
