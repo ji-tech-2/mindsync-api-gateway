@@ -1,0 +1,277 @@
+_format_version: "3.0"
+
+plugins:
+  - name: request-transformer
+    config:
+      add:
+        headers:
+          - "X-Real-IP:$(headers['X-Forwarded-For'])"
+
+# ============================================================================
+# LOCAL DEVELOPMENT - Docker Compose Service Names
+# ============================================================================
+# Routes point to Docker service names instead of production IPs:
+# - backend:8080  (Spring Boot auth service)
+# - inference:5000 (Flask AI model service)
+# ============================================================================
+
+services:
+  # ========== AUTH DOMAIN ==========
+  # POST /v1/auth/register → POST /register
+  - name: auth-register-v1
+    url: http://backend:8080/register
+    routes:
+      - name: auth-register-route-v1
+        paths:
+          - /v1/auth/register
+        strip_path: true
+
+  # POST /v1/auth/login → POST /login
+  - name: auth-login-v1
+    url: http://backend:8080/login
+    routes:
+      - name: auth-login-route-v1
+        paths:
+          - /v1/auth/login
+        strip_path: true
+
+  # POST /v1/auth/logout → POST /logout
+  - name: auth-logout-v1
+    url: http://backend:8080/logout
+    routes:
+      - name: auth-logout-route-v1
+        paths:
+          - /v1/auth/logout
+        strip_path: true
+
+  # POST /v1/auth/reset-password → POST /profile/reset-password
+  - name: auth-reset-password-v1
+    url: http://backend:8080/profile/reset-password
+    routes:
+      - name: auth-reset-password-route-v1
+        paths:
+          - /v1/auth/reset-password
+        strip_path: true
+
+  # POST /v1/auth/request-otp → POST /profile/request-otp
+  - name: auth-request-otp-v1
+    url: http://backend:8080/profile/request-otp
+    routes:
+      - name: auth-request-otp-route-v1
+        paths:
+          - /v1/auth/request-otp
+        strip_path: true
+
+  # POST /v1/auth/verify-otp → POST /profile/verify-otp
+  - name: auth-verify-otp-v1
+    url: http://backend:8080/profile/verify-otp
+    routes:
+      - name: auth-verify-otp-route-v1
+        paths:
+          - /v1/auth/verify-otp
+        strip_path: true
+
+  # POST /v1/auth/request-signup-otp → POST /profile/request-signup-otp
+  - name: auth-request-signup-otp-v1
+    url: http://backend:8080/profile/request-signup-otp
+    routes:
+      - name: auth-request-signup-otp-route-v1
+        paths:
+          - /v1/auth/request-signup-otp
+        strip_path: true
+
+  # ========== USERS DOMAIN ==========
+  # GET|PUT /v1/users/me/profile → GET|PUT /profile
+  - name: user-profile-v1
+    url: http://backend:8080/profile
+    routes:
+      - name: user-profile-route-v1
+        paths:
+          - /v1/users/me/profile
+        strip_path: true
+
+  # POST /v1/users/me/change-password → POST /profile/change-password
+  - name: user-change-password-v1
+    url: http://backend:8080/profile/change-password
+    routes:
+      - name: user-change-password-route-v1
+        paths:
+          - /v1/users/me/change-password
+        strip_path: true
+
+  # ========== PREDICTIONS DOMAIN ==========
+  # POST /v1/predictions/create → POST /predict
+  - name: prediction-create-v1
+    url: http://inference:5000/predict
+    routes:
+      - name: prediction-create-route-v1
+        paths:
+          - /v1/predictions/create
+        strip_path: true
+
+  # GET /v1/predictions/{prediction_id}/result → GET /result/{prediction_id}
+  - name: prediction-result-v1
+    url: http://inference:5000
+    routes:
+      - name: prediction-result-route-v1
+        paths:
+          - ~/v1/predictions/(?<prediction_id>[^/]+)/result$
+        strip_path: false
+        plugins:
+          - name: request-transformer
+            config:
+              replace:
+                uri: "/result/$(uri_captures.prediction_id)"
+
+  # ========== ANALYTICS DOMAIN ==========
+  # GET /v1/users/me/history → GET /history
+  - name: analytics-history-v1
+    url: http://inference:5000/history
+    routes:
+      - name: analytics-history-route-v1
+        paths:
+          - /v1/users/me/history
+        strip_path: true
+
+  # GET /v1/users/me/streaks → GET /streak
+  - name: analytics-streaks-v1
+    url: http://inference:5000/streak
+    routes:
+      - name: analytics-streaks-route-v1
+        paths:
+          - /v1/users/me/streaks
+        strip_path: true
+
+  # GET /v1/users/me/weekly-chart → GET /weekly-chart-data
+  - name: analytics-chart-weekly-v1
+    url: http://inference:5000/weekly-chart-data
+    routes:
+      - name: analytics-chart-weekly-route-v1
+        paths:
+          - /v1/users/me/weekly-chart
+        strip_path: true
+
+  # GET /v1/users/me/weekly-factors → GET /weekly-critical-factors
+  - name: analytics-factors-weekly-v1
+    url: http://inference:5000/weekly-critical-factors
+    routes:
+      - name: analytics-factors-weekly-route-v1
+        paths:
+          - /v1/users/me/weekly-factors
+        strip_path: true
+
+  # GET /v1/users/me/daily-suggestions → GET /daily-suggestion
+  - name: analytics-suggestions-daily-v1
+    url: http://inference:5000/daily-suggestion
+    routes:
+      - name: analytics-suggestions-daily-route-v1
+        paths:
+          - /v1/users/me/daily-suggestions
+        strip_path: true
+
+  # ============================================================================
+  # V0-1 API - Legacy Routes
+  # ============================================================================
+  - name: mindsync-model-flask
+    url: http://inference:5000/predict
+    routes:
+      - name: predict-route
+        paths:
+          - /v0-1/model-predict
+  - name: mindsync-model-advice
+    url: http://inference:5000/advice
+    routes:
+      - name: advice-route
+        paths:
+          - /v0-1/model-advice
+  - name: mindsync-model-result
+    url: http://inference:5000/result
+    routes:
+      - name: result-route
+        paths:
+          - /v0-1/model-result
+  - name: mindsync-model-history
+    url: http://inference:5000/history
+    routes:
+      - name: history-route
+        paths:
+          - /v0-1/model-history
+  - name: mindsync-model-streak
+    url: http://inference:5000/streak
+    routes:
+      - name: streak-route
+        paths:
+          - /v0-1/model-streak
+  - name: mindsync-model-weekly-chart
+    url: http://inference:5000/chart/weekly
+    routes:
+      - name: weekly-chart-route
+        paths:
+          - ~/v0-1/model-weekly-chart/(?<user_id>[^/]+)$
+        strip_path: true
+        plugins:
+          - name: request-transformer
+            config:
+              add:
+                querystring:
+                  - "user_id:$(uri_captures.user_id)"
+  - name: mindsync-model-critical-factors
+    url: http://inference:5000/weekly-critical-factors
+    routes:
+      - name: critical-factors-route
+        paths:
+          - /v0-1/model-critical-factors
+  - name: mindsync-model-daily-suggestion
+    url: http://inference:5000/daily-suggestion
+    routes:
+      - name: daily-suggestion-route
+        paths:
+          - /v0-1/model-daily-suggestion
+  - name: mindsync-auth-login
+    url: http://backend:8080/login
+    routes:
+      - name: login-route
+        paths:
+          - /v0-1/auth-login
+  - name: mindsync-auth-register
+    url: http://backend:8080/register
+    routes:
+      - name: register-route
+        paths:
+          - /v0-1/auth-register
+  - name: mindsync-auth-profile
+    url: http://backend:8080/profile
+    routes:
+      - name: profile-route
+        paths:
+          - /v0-1/auth-profile
+
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "http://localhost:3000"
+        - "http://localhost:5173"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - X-Auth-Token
+      exposed_headers:
+        - X-Auth-Token
+      credentials: true
+      max_age: 3600
+  - name: file-log
+    config:
+      path: /dev/stdout
+      reopen: false
