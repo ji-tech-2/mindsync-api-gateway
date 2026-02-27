@@ -17,7 +17,7 @@ FROM kong:3.6
 # Create directories for declarative config and SSL certificates
 RUN mkdir -p /usr/local/kong/declarative /usr/local/kong/ssl
 
-COPY kong.yml /usr/local/kong/declarative/kong.yml
+COPY kong.local.yml /usr/local/kong/declarative/kong.yml
 
 ENV KONG_DATABASE=off
 ENV KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml
