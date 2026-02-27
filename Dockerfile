@@ -4,6 +4,7 @@ FROM python:3.11-slim AS test
 WORKDIR /app
 
 COPY kong.yml /app/kong.yml
+COPY kong.local.yml /usr/local/kong/declarative/kong.local.yml
 COPY requirements-test.txt /app/requirements-test.txt
 COPY tests /app/tests
 
